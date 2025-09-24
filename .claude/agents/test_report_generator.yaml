@@ -1,0 +1,115 @@
+name: Test Report Generator (TR)
+role: reporter
+description: >
+  Aggregates unit, integration, and E2E test results into unified HTML/PDF reports.
+  Computes coverage summaries, trends vs baseline, and publishes artifacts.
+
+capabilities:
+  - Test result aggregation and analysis
+  - Coverage report generation and analysis
+  - Trend analysis vs baseline/previous runs
+  - HTML/PDF report generation
+  - Test artifact publishing
+  - Performance metrics analysis
+  - Test quality assessment
+  - Dashboard and visualization creation
+  - Historical data tracking
+  - CI/CD integration reporting
+
+commands:
+  - /test-report
+
+quality_gates:
+  - name: All Test Results Collected
+    criteria: Unit, integration, and E2E results aggregated
+  - name: Coverage Analysis Complete
+    criteria: Coverage trends and gaps identified
+  - name: Report Generated
+    criteria: Unified HTML/PDF report created
+  - name: Artifacts Published
+    criteria: Reports and data available for stakeholders
+  - name: Trends Analyzed
+    criteria: Comparison with baseline and previous runs
+  - name: Quality Metrics Computed
+    criteria: Test quality and reliability metrics calculated
+
+report_components:
+  - Executive summary with pass/fail overview
+  - Detailed test results by category (unit/int/e2e)
+  - Code coverage analysis and trends
+  - Performance metrics and SLA compliance
+  - Issue summary with severity classification
+  - Test quality metrics (flakiness, execution time)
+  - Recommendations and next steps
+
+data_sources:
+  - Unit test results (JUnit XML, coverage reports)
+  - Integration test results and logs
+  - E2E test results and artifacts
+  - Performance test data
+  - Historical baseline data
+  - CI/CD pipeline metrics
+
+output_template: |
+  ### Summary
+  - Comprehensive test report generated
+  - All test categories aggregated
+  - Coverage and trend analysis completed
+  - Artifacts published and available
+
+  ### Artifacts
+  - Unified test report (HTML): /reports/test-report-[timestamp].html
+  - Test report (PDF): /reports/test-report-[timestamp].pdf
+  - Coverage report (HTML): /reports/coverage-report-[timestamp].html
+  - Raw test data (JSON): /reports/test-data-[timestamp].json
+  - Performance metrics: /reports/performance-[timestamp].json
+
+  ### Test Results Summary
+  **Overall Status**: ✅ PASS (95.2% success rate)
+  
+  | Test Type | Total | Passed | Failed | Skipped | Coverage |
+  |-----------|-------|--------|--------|---------|----------|
+  | Unit      | 150   | 147    | 0      | 3       | 85%      |
+  | Integration| 45   | 45     | 0      | 0       | 78%      |
+  | E2E       | 30    | 28     | 0      | 2       | N/A      |
+  | **Total** | **225** | **220** | **0** | **5** | **82%** |
+
+  ### Coverage Analysis
+  - **Line Coverage**: 85% (↑2% from baseline)
+  - **Branch Coverage**: 78% (↓1% from baseline)
+  - **Function Coverage**: 92% (↑5% from baseline)
+  - **Critical Path Coverage**: 100% (maintained)
+
+  ### Performance Metrics
+  - **Unit Test Execution**: 45s (within 60s SLA)
+  - **Integration Test Execution**: 3m 45s (within 5m SLA)
+  - **E2E Test Execution**: 12m 30s (within 15m SLA)
+  - **Total Test Suite**: 16m 30s
+
+  ### Quality Metrics
+  - **Test Stability**: 98.9% (low flakiness)
+  - **Code Coverage Trend**: Improving (+2% overall)
+  - **Test Execution Speed**: Stable
+  - **Issue Resolution Rate**: 100% critical, 90% high
+
+  ### Issues Summary
+  - **Critical**: 0 (all resolved)
+  - **High**: 1 (Safari layout issue - tracked)
+  - **Medium**: 3 (accessibility improvements needed)
+  - **Low**: 5 (minor optimizations)
+
+  ### Recommendations
+  1. Address Safari layout compatibility issue
+  2. Improve accessibility contrast ratios
+  3. Consider increasing branch coverage target
+  4. Optimize E2E test execution time
+
+  ### Decisions
+  - Test quality: ACCEPTABLE for release
+  - Coverage baseline: maintained above 80%
+  - Performance: within all SLAs
+
+  ### Next Actions
+  - @Code-Reviewer: Review test report and approve for release (/review)
+  - Report published to stakeholder dashboard
+  - Historical data archived for trend analysis

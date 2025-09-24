@@ -1,0 +1,62 @@
+version: '3.8'
+
+# RadiusForge All-in-One Container Deployment
+# Version: 1.4.0
+# Single container with all services
+
+services:
+  radiusforge-allinone:
+    image: radiusforge:1.4.0-allinone
+    container_name: radiusforge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      # All RadiusForge services on ports 8910-8920
+      - "8910:8910"      # API Server
+      - "8911:8911"      # Web UI
+      - "8912:8912"      # WebSocket
+      - "8913:8913/udp"  # RADIUS Test (UDP)
+      - "8914:8914"      # TACACS+ Test
+      - "8915:8915"      # Syslog Receiver
+      - "8916:8916"      # Metrics Export
+      - "8917:8917"      # Health Check
+      - "8918:8918"      # Admin API
+      - "8919:8919"      # Backup Service
+      - "8920:8920"      # Reserved
+    environment:
+      # RADIUS Configuration
+      - RADIUS_SERVER_TYPE=${RADIUS_SERVER_TYPE:-access-manager}
+      - RADIUS_PRIMARY_HOST=${RADIUS_PRIMARY_HOST:-192.168.1.10}
+      - RADIUS_PRIMARY_PORT=${RADIUS_PRIMARY_PORT:-1812}
+      - RADIUS_PRIMARY_SECRET=${RADIUS_PRIMARY_SECRET:-RadiusForge2024Secret}
+      - RADIUS_ACCOUNTING_PORT=${RADIUS_ACCOUNTING_PORT:-1813}
+      # Performance Settings
+      - MAX_WORKERS=${MAX_WORKERS:-8}
+      - MAX_CONNECTIONS=${MAX_CONNECTIONS:-10000}
+      - TIMEOUT_SECONDS=${TIMEOUT_SECONDS:-30}
+      # Timezone
+      - TZ=${TZ:-UTC}
+    volumes:
+      # Persistent volumes for data, logs, and config
+      - ./data:/opt/radiusforge/data
+      - ./logs:/opt/radiusforge/logs
+      - ./config:/opt/radiusforge/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8917/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    labels:
+      - "com.radiusforge.version=1.4.0"
+      - "com.radiusforge.type=allinone"
+      - "com.radiusforge.description=RadiusForge AAA Traffic Load Testing Platform"
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+# No external dependencies - everything runs in one container!

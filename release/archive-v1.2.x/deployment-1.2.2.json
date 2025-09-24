@@ -1,0 +1,11 @@
+{
+  "version": "1.2.2",
+  "previous_version": "1.2.1",
+  "full_bundle": "radiusforge-1.2.2-full.tar.gz",
+  "delta_bundle": "radiusforge-1.2.1-to-1.2.2-delta.tar.gz",
+  "created_at": "2025-08-13T22:28:33.972622",
+  "deployment_instructions": {
+    "full": "tar -xzf radiusforge-1.2.2-full.tar.gz && ./install.sh",
+    "delta": "tar -xzf radiusforge-1.2.1-to-1.2.2-delta.tar.gz && ./update.sh"
+  }
+}

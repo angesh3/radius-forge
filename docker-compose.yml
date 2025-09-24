@@ -1,0 +1,207 @@
+version: '3.8'
+
+services:
+  # =============================================================================
+  # PostgreSQL Database
+  # =============================================================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: radiusforge-db
+    environment:
+      POSTGRES_USER: radiusforge
+      POSTGRES_PASSWORD: radiusforge_pass
+      POSTGRES_DB: radiusforge
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./ops/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radiusforge"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - radiusforge-network
+
+  # =============================================================================
+  # Redis Cache
+  # =============================================================================
+  redis:
+    image: redis:7-alpine
+    container_name: radiusforge-redis
+    command: redis-server --appendonly yes
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - radiusforge-network
+
+  # =============================================================================
+  # RadiusForge API Backend
+  # =============================================================================
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: radiusforge-api
+    environment:
+      - DATABASE_URL=postgresql://radiusforge:radiusforge_pass@postgres:5432/radiusforge
+      - REDIS_URL=redis://redis:6379/0
+      - API_HOST=0.0.0.0
+      - API_PORT=8910
+      - CORS_ORIGINS=http://localhost:3000,http://localhost:5173
+    ports:
+      - "8910:8910"      # API Server
+      - "8915:8915"      # Syslog Receiver
+    volumes:
+      - ./src:/app/src:ro
+      - ./reports:/app/reports
+      - ./logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8910/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - radiusforge-network
+
+  # =============================================================================
+  # RadiusForge UI Frontend
+  # =============================================================================
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    container_name: radiusforge-ui
+    environment:
+      - VITE_API_URL=http://localhost:8910
+      - VITE_WS_URL=ws://localhost:8910/ws
+    ports:
+      - "8911:80"        # Web UI
+    depends_on:
+      - api
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+    networks:
+      - radiusforge-network
+
+  # =============================================================================
+  # Prometheus Monitoring
+  # =============================================================================
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: radiusforge-prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./ops/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - radiusforge-network
+
+  # =============================================================================
+  # Grafana Dashboard
+  # =============================================================================
+  grafana:
+    image: grafana/grafana:latest
+    container_name: radiusforge-grafana
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    ports:
+      - "3001:3000"
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./ops/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./ops/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+    networks:
+      - radiusforge-network
+
+  # =============================================================================
+  # Test RADIUS Server (for development)
+  # =============================================================================
+  radius-test:
+    image: freeradius/freeradius-server:latest
+    container_name: radiusforge-radius-test
+    ports:
+      - "1812:1812/udp"  # Authentication
+      - "1813:1813/udp"  # Accounting
+    volumes:
+      - ./ops/freeradius/clients.conf:/etc/raddb/clients.conf:ro
+      - ./ops/freeradius/users:/etc/raddb/users:ro
+    networks:
+      - radiusforge-network
+    profiles:
+      - test
+
+  # =============================================================================
+  # TACACS+ Test Server (for development)
+  # =============================================================================
+  tacacs-test:
+    build:
+      context: ./ops
+      dockerfile: Dockerfile.tacacs
+    container_name: radiusforge-tacacs-test
+    ports:
+      - "49:49"
+    volumes:
+      - ./ops/tac_plus/tac_plus.conf:/etc/tac_plus.conf:ro
+    networks:
+      - radiusforge-network
+    profiles:
+      - test
+
+# =============================================================================
+# Networks
+# =============================================================================
+networks:
+  radiusforge-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16
+
+# =============================================================================
+# Volumes
+# =============================================================================
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
