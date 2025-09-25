@@ -20,8 +20,7 @@ class Settings(BaseSettings):
 
     # Database Configuration
     DATABASE_URL: str = Field(
-        default="postgresql+asyncpg://radiusforge:radiusforge@localhost/radiusforge",
-        env="DATABASE_URL"
+        default="postgresql+asyncpg://radiusforge:radiusforge@localhost/radiusforge", env="DATABASE_URL"
     )
     DATABASE_ECHO: bool = Field(default=False, env="DATABASE_ECHO")
 
@@ -29,10 +28,7 @@ class Settings(BaseSettings):
     REDIS_URL: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
 
     # CORS Configuration
-    CORS_ORIGINS: str = Field(
-        default="http://localhost:8911,http://127.0.0.1:8911",
-        env="CORS_ORIGINS"
-    )
+    CORS_ORIGINS: str = Field(default="http://localhost:8911,http://127.0.0.1:8911", env="CORS_ORIGINS")
 
     @property
     def cors_origins_list(self) -> List[str]:
@@ -42,6 +38,13 @@ class Settings(BaseSettings):
     # Security Settings
     SECRET_KEY: str = Field(default="radiusforge-secret-key-change-in-production", env="SECRET_KEY")
     ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, env="ACCESS_TOKEN_EXPIRE_MINUTES")
+
+    # Secret Management
+    ENCRYPTION_KEY_SOURCE: str = Field(
+        default="radiusforge-encryption-key-change-in-production", env="ENCRYPTION_KEY_SOURCE"
+    )
+
+    ALLOW_SIMULATORS: str = Field(default="0", env="ALLOW_SIMULATORS")
 
     # RADIUS Configuration
     RADIUS_SECRET: str = Field(default="testing123", env="RADIUS_SECRET")
@@ -59,10 +62,7 @@ class Settings(BaseSettings):
 
     # Logging Configuration
     LOG_LEVEL: str = Field(default="INFO", env="LOG_LEVEL")
-    LOG_FORMAT: str = Field(
-        default="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        env="LOG_FORMAT"
-    )
+    LOG_FORMAT: str = Field(default="%(asctime)s - %(name)s - %(levelname)s - %(message)s", env="LOG_FORMAT")
 
     # File Storage
     REPORTS_DIR: str = Field(default="./reports", env="REPORTS_DIR")
@@ -95,11 +95,7 @@ def get_settings() -> Settings:
 
 def create_directories():
     """Create necessary directories if they don't exist"""
-    directories = [
-        settings.REPORTS_DIR,
-        settings.LOGS_DIR,
-        settings.TEMP_DIR
-    ]
+    directories = [settings.REPORTS_DIR, settings.LOGS_DIR, settings.TEMP_DIR]
 
     for directory in directories:
         os.makedirs(directory, exist_ok=True)

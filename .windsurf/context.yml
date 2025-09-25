@@ -1,0 +1,137 @@
+# RadiusForge Context - Non-Regression Invariants
+# This file encodes critical invariants that must never be violated
+
+project:
+  name: "RadiusForge"
+  description: "AAA Traffic Load Testing Platform for Cisco ISE and Access Manager"
+  version: "1.4.0"
+
+# Core Invariants - MUST NEVER BE VIOLATED
+invariants:
+  production_purity:
+    - "No mocks or simulators in production code"
+    - "All /api/* endpoints return JSON-only responses"
+    - "Global error handler ensures consistent JSON error format"
+    - "Simulators only allowed in tests with ALLOW_SIMULATORS=1 guard"
+    - "CI fails if simulator code imported in production code"
+    - "Simulators excluded from bundles and production images"
+
+  connectivity:
+    - "Real UDP/TCP connectivity probes required"
+    - "Canonical host resolution: host || host_ip || ip"
+    - "Quick Test auth fails clearly if secret missing"
+    - "No secrets in connectivity tests - pure L4 testing"
+
+  infrastructure:
+    - "nginx (8911) → api (8910) routing stable (no 502 errors)"
+    - "WebSocket telemetry stable (no 1006 errors)"
+    - "Idle metrics clamp to zero"
+    - "Port range 8910-8920 for all services"
+
+  data_persistence:
+    - "Durable volumes for all persistent data"
+    - "Idempotent migrations - never drop data on boot"
+    - "Database operations handle existing tables gracefully"
+
+  security:
+    - "Secrets encrypted with AES-GCM at rest"
+    - "Never return cleartext secrets in API responses"
+    - "Secret redaction in logs and exports"
+    - "API key authentication for protected endpoints"
+
+# Architecture Constraints
+architecture:
+  protocols:
+    - "RADIUS: PAP, CHAP, MS-CHAPv2, PEAP, EAP-TLS support"
+    - "TACACS+: AuthN/AuthZ/Acct over TCP"
+    - "pxGrid: token issuance + subscription"
+    - "Real protocol clients for production use"
+
+  api_structure:
+    - "Quick Test: POST /api/test/auth, POST /api/test/auth/bulk"
+    - "Connectivity: POST /api/connectivity/test"
+    - "Scale/Perf: POST /api/runs, GET /api/runs/{id}"
+    - "Config: GET /api/config/summary, GET/POST /api/servers/{id}/secret"
+    - "Diagnostics: GET /api/diagnostics/health, /network, /configuration"
+    - "Telemetry WS: /ws/telemetry"
+
+  ui_constraints:
+    - "Preserve current IA/styling and features"
+    - "Server picker uses server id (not name)"
+    - "Display secret status badge"
+    - "Validate NAS-IP ≠ server IP"
+    - "Live telemetry via WebSocket"
+
+# Testing Requirements
+testing:
+  simulators:
+    - "Located in src/simulators/ directory only"
+    - "Environment guard: if os.getenv('ALLOW_SIMULATORS') != '1': raise ImportError"
+    - "Hermetic and deterministic behavior"
+    - "radius_sim.py, tacacs_sim.py, pxgrid_sim.py"
+
+  coverage:
+    - "Maintain >78% test coverage"
+    - "Unit tests for all protocol clients"
+    - "Integration tests for API endpoints"
+    - "E2E tests for complete workflows"
+
+# Performance Requirements
+performance:
+  scale:
+    - "Support up to 100k RPS"
+    - "< 5% jitter in load generation"
+    - "Real-time metrics with <1s latency"
+
+  telemetry:
+    - "RPS, p50/p95/p99 latency tracking"
+    - "Error taxonomy classification"
+    - "Socket connection monitoring"
+    - "System resource tracking"
+
+# Deployment Constraints
+deployment:
+  ports:
+    api: 8910
+    ui: 8911
+    websocket: 8912
+    radius_test: 8913
+    tacacs_test: 8914
+    syslog: 8915
+    metrics_export: 8916
+    health_check: 8917
+    admin_api: 8918
+    backup_service: 8919
+    reserved: 8920
+
+  services:
+    - "All services containerized"
+    - "Cross-platform support"
+    - "Observability built-in"
+    - "Secure secrets management"
+
+# Quality Gates
+quality_gates:
+  lint:
+    - "flake8 passes with no errors"
+    - "black formatting applied"
+    - "mypy type checking passes"
+    - "bandit security checks pass"
+
+  tests:
+    - "All unit tests pass"
+    - "Integration tests pass"
+    - "No test dependencies on external services in CI"
+
+  security:
+    - "No secrets in logs or version control"
+    - "All API endpoints authenticated where required"
+    - "Input validation on all endpoints"
+    - "Rate limiting implemented"
+
+# ADR References
+adrs:
+  - "ADR-0001: Context-driven development approach"
+  - "Multi-agent orchestration per CLAUDE.md"
+  - "Dual-bundle deployment system"
+  - "Semantic versioning (MAJOR.MINOR.PATCH)"

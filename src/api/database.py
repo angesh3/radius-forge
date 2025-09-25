@@ -18,6 +18,7 @@ logger = logging.getLogger(__name__)
 
 class Base(DeclarativeBase):
     """Base class for all database models"""
+
     pass
 
 
@@ -32,26 +33,22 @@ engine = create_async_engine(
 
 # Create async session factory
 AsyncSessionLocal = async_sessionmaker(
-    engine,
-    class_=AsyncSession,
-    expire_on_commit=False,
-    autoflush=True,
-    autocommit=False
+    engine, class_=AsyncSession, expire_on_commit=False, autoflush=True, autocommit=False
 )
 
 
 async def init_db():
-    """Initialize database - create all tables"""
+    """Initialize database - create all tables (idempotent)"""
     try:
         async with engine.begin() as conn:
             # Import all models to ensure they're registered
             from . import models
-            
-            # Create all tables
-            await conn.run_sync(Base.metadata.create_all)
-            
+
+            # Create all tables (idempotent - won't fail if tables exist)
+            await conn.run_sync(Base.metadata.create_all, checkfirst=True)
+
         logger.info("Database initialized successfully")
-        
+
     except Exception as e:
         logger.error(f"Failed to initialize database: {e}")
         raise
@@ -60,7 +57,7 @@ async def init_db():
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     """
     Dependency to get database session
-    
+
     Usage:
         @app.get("/endpoint")
         async def endpoint(db: AsyncSession = Depends(get_db)):
@@ -81,7 +78,7 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
     """
     Context manager for database session
-    
+
     Usage:
         async with get_db_context() as db:
             # Use db session
@@ -99,11 +96,11 @@ async def get_db_context() -> AsyncGenerator[AsyncSession, None]:
 
 class DatabaseManager:
     """Database manager for advanced operations"""
-    
+
     def __init__(self):
         self.engine = engine
         self.session_factory = AsyncSessionLocal
-    
+
     async def health_check(self) -> bool:
         """Check database connectivity"""
         try:
@@ -113,44 +110,44 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Database health check failed: {e}")
             return False
-    
+
     async def cleanup_expired_sessions(self):
         """Clean up expired test sessions and old data"""
         try:
             async with self.session_factory() as session:
                 from .models import TestRun
                 from datetime import datetime, timedelta
-                
+
                 # Clean up test runs older than retention period
                 cutoff_date = datetime.utcnow() - timedelta(days=settings.METRICS_RETENTION_DAYS)
-                
+
                 # Note: Using text() for raw SQL if needed
                 # await session.execute(text("DELETE FROM test_runs WHERE created_at < :cutoff"), {"cutoff": cutoff_date})
-                
+
                 await session.commit()
                 logger.info("Database cleanup completed")
-                
+
         except Exception as e:
             logger.error(f"Database cleanup failed: {e}")
-    
+
     async def get_db_stats(self) -> dict:
         """Get database statistics"""
         try:
             async with self.session_factory() as session:
                 from .models import TestRun, NAD, Report
-                
+
                 # Get counts
                 test_runs_count = await session.scalar("SELECT COUNT(*) FROM test_runs")
                 nads_count = await session.scalar("SELECT COUNT(*) FROM nads")
                 reports_count = await session.scalar("SELECT COUNT(*) FROM reports")
-                
+
                 return {
                     "test_runs": test_runs_count or 0,
                     "nads": nads_count or 0,
                     "reports": reports_count or 0,
-                    "status": "healthy"
+                    "status": "healthy",
                 }
-                
+
         except Exception as e:
             logger.error(f"Failed to get database stats: {e}")
             return {"status": "error", "error": str(e)}
