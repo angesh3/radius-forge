@@ -55,7 +55,7 @@ def test_settings():
         MAX_CONCURRENT_TESTS=5,
         WS_HEARTBEAT_INTERVAL=5,
         WS_MAX_CONNECTIONS=10,
-        CORS_ORIGINS=["http://localhost:3000", "http://127.0.0.1:3000"]
+        CORS_ORIGINS="http://localhost:3000,http://127.0.0.1:3000"
     )
 
 

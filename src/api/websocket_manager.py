@@ -1,20 +1,84 @@
 """WebSocket manager for real-time telemetry"""
 
-from fastapi import WebSocket, WebSocketDisconnect
-from typing import Dict, List, Set, Any
+from fastapi import WebSocket
+from typing import Dict, List, Set, Any, Optional
 import json
 import asyncio
 import random
 import logging
 from datetime import datetime
+import uuid
+import threading
 
 logger = logging.getLogger(__name__)
+
+
+class WebSocketConnection:
+    """Individual WebSocket connection wrapper"""
+    
+    def __init__(self, websocket: WebSocket, client_id: Optional[str] = None):
+        self.websocket = websocket
+        self.client_id = client_id or str(uuid.uuid4())
+        self.subscriptions: Set[str] = set()
+        self.last_ping = datetime.now()
+        self.connected_at = datetime.now()
+        self.metadata: Dict[str, Any] = {}
+
+    async def send_json(self, data: dict):
+        """Send JSON data to the connection"""
+        try:
+            await self.websocket.send_json(data)
+        except Exception as e:
+            logger.error(f"Failed to send JSON to {self.client_id}: {e}")
+            raise
+
+    async def send_text(self, message: str):
+        """Send text message to the connection"""
+        try:
+            await self.websocket.send_text(message)
+        except Exception as e:
+            logger.error(f"Failed to send text to {self.client_id}: {e}")
+            raise
+
+    def subscribe(self, topics):
+        """Subscribe to topics"""
+        if isinstance(topics, str):
+            self.subscriptions.add(topics)
+        else:
+            self.subscriptions.update(topics)
+
+    def unsubscribe(self, topics):
+        """Unsubscribe from topics"""
+        if isinstance(topics, str):
+            self.subscriptions.discard(topics)
+        else:
+            self.subscriptions.difference_update(topics)
+
+    def update_ping(self):
+        """Update last ping timestamp"""
+        self.last_ping = datetime.now()
+
+    def is_subscribed_to(self, topic: str) -> bool:
+        """Check if connection is subscribed to a topic"""
+        return topic in self.subscriptions
+
+    def is_subscribed(self, topic: str) -> bool:
+        """Check if connection is subscribed to a topic (test compatibility)"""
+        return topic in self.subscriptions
+
+    def is_subscribe_to(self, topic: str) -> bool:
+        """Legacy method name for backward compatibility"""
+        return self.is_subscribed_to(topic)
 
 
 class ConnectionManager:
     def __init__(self):
         self.active_connections: List[WebSocket] = []
+        self.connections: Dict[str, WebSocketConnection] = {}
         self.subscriptions: Dict[WebSocket, Set[str]] = {}
+        self.topic_subscriptions: Dict[str, Set[str]] = {}
+        self.topic_subscribers: Dict[str, Set[str]] = {}
+        self._lock = threading.Lock()
         self.telemetry_data = {
             "rps": 0,
             "latency_p50": 0,
@@ -27,16 +91,26 @@ class ConnectionManager:
             "network_throughput": "0 Gbps",
         }
 
-    async def connect(self, websocket: WebSocket):
+    async def connect(self, websocket: WebSocket, client_id: Optional[str] = None):
         await websocket.accept()
+        connection = WebSocketConnection(websocket, client_id)
         self.active_connections.append(websocket)
+        self.connections[connection.client_id] = connection
         self.subscriptions[websocket] = set()
+        return connection
 
     def disconnect(self, websocket: WebSocket):
         if websocket in self.active_connections:
             self.active_connections.remove(websocket)
         if websocket in self.subscriptions:
             del self.subscriptions[websocket]
+        to_remove = None
+        for client_id, conn in self.connections.items():
+            if conn.websocket == websocket:
+                to_remove = client_id
+                break
+        if to_remove:
+            del self.connections[to_remove]
 
     async def disconnect_all(self):
         """Disconnect all active connections"""

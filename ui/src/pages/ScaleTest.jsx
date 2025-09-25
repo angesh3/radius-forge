@@ -105,7 +105,7 @@ const ScaleTest = () => {
   // Predefined scale points from PRD
   const scalePoints = [150, 200, 300, 500, 1000, 1500, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 10000, 50000, 100000];
 
-  const trafficTypes = ['RADIUS', 'TACACS+', 'Syslog'];
+  const trafficTypes = ['RADIUS', 'TACACS+', 'Syslog', 'pxGrid'];
   const authTypes = ['EAP-TLS', 'MAB', 'PEAP', '802.1X', 'PAP', 'CHAP', 'MS-CHAPv2', 'EAP-MD5', 'EAP-TTLS', 'EAP-FAST', 'EAP-PWD'];
   const rpsProfiles = ['Constant', 'Incremental', 'Step', 'Ramp', 'Burst'];
   const targetTypes = ['Access Manager', 'Cisco ISE', 'FreeRADIUS', 'Microsoft NPS'];

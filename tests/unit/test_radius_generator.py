@@ -70,11 +70,11 @@ class TestRADIUSPacket:
         # Create a minimal RADIUS packet
         code = RADIUSCode.ACCESS_ACCEPT.value
         identifier = 99
-        length = 26  # 20 header + 6 attribute
         authenticator = b'\x02' * 16
         attr_type = 18  # Reply-Message
-        attr_length = 6
         attr_value = b'OK'
+        attr_length = len(attr_value) + 2  # Include type and length bytes
+        length = 20 + attr_length  # Header + attribute
         
         packet_data = struct.pack('!BBH16sBB', 
                                  code, identifier, length, authenticator,
@@ -84,7 +84,7 @@ class TestRADIUSPacket:
         
         assert packet.code == RADIUSCode.ACCESS_ACCEPT
         assert packet.identifier == 99
-        assert packet.length == 26
+        assert packet.length == length
         assert packet.authenticator == authenticator
         assert packet.attributes[18] == attr_value
     

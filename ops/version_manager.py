@@ -133,7 +133,17 @@ class VersionManager:
             )]
             
             for filename in filenames:
-                if not any(pattern in filename for pattern in exclude_patterns):
+                # Check for specific extensions and patterns
+                should_exclude = (
+                    filename.endswith('.pyc') or
+                    filename.endswith('.log') or
+                    filename == '.env' or
+                    filename == '.DS_Store' or
+                    filename.endswith('.egg-info') or
+                    any(pattern in filename for pattern in ['.coverage', 'test-results'])
+                )
+                
+                if not should_exclude:
                     filepath = Path(root) / filename
                     rel_path = filepath.relative_to(self.base_dir)
                     files.append(rel_path)

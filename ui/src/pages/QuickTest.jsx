@@ -74,6 +74,14 @@ const QuickTest = () => {
     fragment_size: 1400,
   });
 
+  const [connectivityConfig, setConnectivityConfig] = useState({
+    host: '',
+    port: 1812,
+    protocol: 'UDP',
+    timeout: 5,
+    retries: 3,
+  });
+
   const [threatConfig, setThreatConfig] = useState({
     type: 'credential-spray',
     intensity: 'medium',
@@ -88,6 +96,11 @@ const QuickTest = () => {
     { value: 'peap', label: 'PEAP', description: 'Protected EAP with MSCHAPv2' },
     { value: 'pap', label: 'PAP', description: 'Password Authentication Protocol' },
     { value: 'chap', label: 'CHAP', description: 'Challenge Handshake Protocol' },
+    { value: 'tacacs-authn', label: 'TACACS+ AuthN', description: 'TACACS+ Authentication' },
+    { value: 'tacacs-authz', label: 'TACACS+ AuthZ', description: 'TACACS+ Authorization' },
+    { value: 'tacacs-acct', label: 'TACACS+ Acct', description: 'TACACS+ Accounting' },
+    { value: 'pxgrid-token', label: 'pxGrid Token', description: 'pxGrid token issuance test' },
+    { value: 'pxgrid-subscribe', label: 'pxGrid Subscribe', description: 'pxGrid subscription test' },
   ];
 
   const targets = [
@@ -122,6 +135,34 @@ const QuickTest = () => {
       setTestResults([result, ...testResults.slice(0, 9)]);
       setRunning(false);
     }, 2000);
+  };
+
+  const handleRunConnectivityTest = () => {
+    setRunning(true);
+    
+    // Simulate connectivity test execution
+    setTimeout(() => {
+      const result = {
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        type: 'connectivity',
+        target: `${connectivityConfig.host}:${connectivityConfig.port}`,
+        status: Math.random() > 0.3 ? 'success' : 'failed',
+        latency: Math.floor(Math.random() * 100) + 5,
+        details: {
+          protocol: connectivityConfig.protocol,
+          host: connectivityConfig.host,
+          port: connectivityConfig.port,
+          timeout: connectivityConfig.timeout,
+          retries: connectivityConfig.retries,
+          response_time: Math.floor(Math.random() * 100) + 5,
+          status: Math.random() > 0.3 ? 'Reachable' : 'Unreachable',
+        },
+      };
+      
+      setTestResults([result, ...testResults.slice(0, 9)]);
+      setRunning(false);
+    }, 1500);
   };
 
   const generateTestDetails = (type) => {
@@ -261,6 +302,116 @@ const QuickTest = () => {
           'Tunnel-Private-Group-Id = "200"'
         ],
         rawPacket: '01 43 00 F5...'
+      },
+      'tacacs-authn': {
+        request: 'Authentication Start',
+        response: 'Authentication Reply',
+        status: Math.random() > 0.1 ? 'Valid Auth' : 'Invalid Auth',
+        attributes: [
+          'Version = 12.0',
+          'Type = Authentication (1)',
+          'Sequence = 1',
+          'Flags = TAC_PLUS_UNENCRYPTED_FLAG',
+          'Session ID = 12345',
+          'Length = 32',
+          'Username = "testuser001"',
+          'Port = "tty1"',
+          'Remote Address = "10.0.1.100"'
+        ],
+        vsa: [
+          'TACACS+ AVPair = "service=shell"',
+          'TACACS+ AVPair = "protocol=ssh"',
+          'TACACS+ AVPair = "cmd=show"',
+          'TACACS+ AVPair = "priv-lvl=15"'
+        ],
+        rawPacket: 'c0 01 01 00 00 30 39 00 20 0b 74 65 73 74 75 73\n65 72 30 30 31 04 74 74 79 31 0a 31 30 2e 30 2e\n31 2e 31 30 30'
+      },
+      'tacacs-authz': {
+        request: 'Authorization Request',
+        response: 'Authorization Response',
+        status: Math.random() > 0.1 ? 'Valid AuthZ' : 'Invalid AuthZ',
+        attributes: [
+          'Version = 12.0',
+          'Type = Authorization (2)',
+          'Sequence = 1',
+          'Flags = TAC_PLUS_UNENCRYPTED_FLAG',
+          'Session ID = 12346',
+          'Length = 28',
+          'Username = "testuser001"',
+          'Service = shell',
+          'Command = show version'
+        ],
+        vsa: [
+          'TACACS+ AVPair = "service=shell"',
+          'TACACS+ AVPair = "protocol=ssh"',
+          'TACACS+ AVPair = "cmd=show"',
+          'TACACS+ AVPair = "cmd-arg=version"'
+        ],
+        rawPacket: 'c0 02 01 00 00 30 3a 00 1c 0b 74 65 73 74 75 73\n65 72 30 30 31 05 73 68 65 6c 6c 0c 73 68 6f 77\n20 76 65 72 73 69 6f 6e'
+      },
+      'tacacs-acct': {
+        request: 'Accounting Request',
+        response: 'Accounting Response',
+        status: Math.random() > 0.1 ? 'Valid Acct' : 'Invalid Acct',
+        attributes: [
+          'Version = 12.0',
+          'Type = Accounting (3)',
+          'Sequence = 1',
+          'Flags = TAC_PLUS_ACCT_FLAG_START',
+          'Session ID = 12347',
+          'Length = 24',
+          'Username = "testuser001"',
+          'Task ID = 1',
+          'Start Time = ' + new Date().toISOString()
+        ],
+        vsa: [
+          'TACACS+ AVPair = "service=shell"',
+          'TACACS+ AVPair = "protocol=ssh"',
+          'TACACS+ AVPair = "task_id=1"',
+          'TACACS+ AVPair = "start_time=' + Math.floor(Date.now() / 1000) + '"'
+        ],
+        rawPacket: 'c0 03 01 02 00 30 3b 00 18 0b 74 65 73 74 75 73\n65 72 30 30 31 01 00 00 00 01'
+      },
+      'pxgrid-token': {
+        request: 'Token Request',
+        response: 'Token Response',
+        status: Math.random() > 0.1 ? 'Valid Token' : 'Invalid Token',
+        attributes: [
+          'Client ID = pxgrid-client-001',
+          'Grant Type = client_credentials',
+          'Scope = session',
+          'Token Type = Bearer',
+          'Access Token = [JWT token]',
+          'Expires In = 3600',
+          'Issued At = ' + new Date().toISOString()
+        ],
+        vsa: [
+          'pxGrid-AVPair = "client_id=pxgrid-client-001"',
+          'pxGrid-AVPair = "grant_type=client_credentials"',
+          'pxGrid-AVPair = "scope=session"',
+          'pxGrid-AVPair = "token_type=Bearer"'
+        ],
+        rawPacket: 'POST /pxgrid/control/AccessTokenRequest HTTP/1.1\nContent-Type: application/json\nAccept: application/json\n\n{"grant_type":"client_credentials","scope":"session"}'
+      },
+      'pxgrid-subscribe': {
+        request: 'Subscribe Request',
+        response: 'Subscribe Response',
+        status: Math.random() > 0.1 ? 'Valid Subscribe' : 'Invalid Subscribe',
+        attributes: [
+          'Topic = /topic/com.cisco.ise.session',
+          'Client ID = pxgrid-client-001',
+          'Subscription ID = sub-12345',
+          'WebSocket URL = wss://ise.example.com:8910/pxgrid/ise/pubsub',
+          'Status = Active',
+          'Created At = ' + new Date().toISOString()
+        ],
+        vsa: [
+          'pxGrid-AVPair = "topic=/topic/com.cisco.ise.session"',
+          'pxGrid-AVPair = "client_id=pxgrid-client-001"',
+          'pxGrid-AVPair = "subscription_id=sub-12345"',
+          'pxGrid-AVPair = "status=Active"'
+        ],
+        rawPacket: 'POST /pxgrid/control/SubscriptionService/subscribe HTTP/1.1\nContent-Type: application/json\nAuthorization: Bearer [token]\n\n{"topic":"/topic/com.cisco.ise.session"}'
       }
     };
     
@@ -318,6 +469,7 @@ const QuickTest = () => {
 
       <Tabs value={activeTab} onChange={handleTabChange} sx={{ mb: 3 }}>
         <Tab label="Authentication Test" icon={<AuthIcon />} iconPosition="start" />
+        <Tab label="Connectivity Test" icon={<NetworkIcon />} iconPosition="start" />
         <Tab label="Threat Simulation" icon={<SecurityIcon />} iconPosition="start" />
         <Tab label="Batch Test" icon={<LogIcon />} iconPosition="start" />
       </Tabs>
@@ -616,8 +768,133 @@ const QuickTest = () => {
         </Grid>
       )}
 
-      {/* Threat Simulation Tab */}
+      {/* Connectivity Test Tab */}
       {activeTab === 1 && (
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Connectivity Test Configuration
+                </Typography>
+                
+                <Box sx={{ mt: 3 }}>
+                  <TextField
+                    fullWidth
+                    label="Host/IP Address"
+                    value={connectivityConfig.host}
+                    onChange={(e) => setConnectivityConfig({ ...connectivityConfig, host: e.target.value })}
+                    placeholder="192.168.1.10"
+                    sx={{ mb: 2 }}
+                  />
+                  
+                  <TextField
+                    fullWidth
+                    label="Port"
+                    type="number"
+                    value={connectivityConfig.port}
+                    onChange={(e) => setConnectivityConfig({ ...connectivityConfig, port: parseInt(e.target.value) })}
+                    sx={{ mb: 2 }}
+                  />
+                  
+                  <FormControl fullWidth sx={{ mb: 2 }}>
+                    <InputLabel>Protocol</InputLabel>
+                    <Select
+                      value={connectivityConfig.protocol}
+                      onChange={(e) => setConnectivityConfig({ ...connectivityConfig, protocol: e.target.value })}
+                      label="Protocol"
+                    >
+                      <MenuItem value="UDP">UDP (RADIUS)</MenuItem>
+                      <MenuItem value="TCP">TCP (TACACS+)</MenuItem>
+                    </Select>
+                  </FormControl>
+                  
+                  <TextField
+                    fullWidth
+                    label="Timeout (seconds)"
+                    type="number"
+                    value={connectivityConfig.timeout}
+                    onChange={(e) => setConnectivityConfig({ ...connectivityConfig, timeout: parseInt(e.target.value) })}
+                    sx={{ mb: 2 }}
+                  />
+                  
+                  <TextField
+                    fullWidth
+                    label="Retries"
+                    type="number"
+                    value={connectivityConfig.retries}
+                    onChange={(e) => setConnectivityConfig({ ...connectivityConfig, retries: parseInt(e.target.value) })}
+                    sx={{ mb: 3 }}
+                  />
+                  
+                  <Button
+                    variant="contained"
+                    onClick={handleRunConnectivityTest}
+                    disabled={running || !connectivityConfig.host}
+                    startIcon={running ? <CircularProgress size={20} /> : <NetworkIcon />}
+                    fullWidth
+                  >
+                    {running ? 'Testing...' : 'Run Connectivity Test'}
+                  </Button>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <Card>
+              <CardContent>
+                <Typography variant="h6" gutterBottom sx={{ fontWeight: 600 }}>
+                  Connectivity Test Results
+                </Typography>
+                {testResults.length > 0 && testResults[0].type === 'connectivity' ? (
+                  <Box>
+                    <Alert severity={testResults[0].status === 'success' ? 'success' : 'error'} sx={{ mb: 2 }}>
+                      <Typography variant="body2">
+                        <strong>Host:</strong> {testResults[0].details.host}:{testResults[0].details.port} - 
+                        {testResults[0].details.status} ({testResults[0].details.protocol})
+                      </Typography>
+                    </Alert>
+                    
+                    <Grid container spacing={2}>
+                      <Grid item xs={6}>
+                        <Paper sx={{ p: 2, textAlign: 'center' }}>
+                          <Typography variant="h6" color="primary">
+                            {testResults[0].details.response_time}ms
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Response Time
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                      <Grid item xs={6}>
+                        <Paper sx={{ p: 2, textAlign: 'center' }}>
+                          <Typography variant="h6" color="primary">
+                            {testResults[0].details.protocol}
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            Protocol
+                          </Typography>
+                        </Paper>
+                      </Grid>
+                    </Grid>
+                  </Box>
+                ) : (
+                  <Box sx={{ textAlign: 'center', py: 8 }}>
+                    <NetworkIcon sx={{ fontSize: 64, color: 'text.disabled', mb: 2 }} />
+                    <Typography variant="body1" color="text.secondary">
+                      No connectivity test results yet
+                    </Typography>
+                  </Box>
+                )}
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+      )}
+
+      {/* Threat Simulation Tab */}
+      {activeTab === 2 && (
         <Grid container spacing={3}>
           <Grid item xs={12} md={6}>
             <Card>
@@ -722,7 +999,7 @@ const QuickTest = () => {
       )}
 
       {/* Batch Test Tab */}
-      {activeTab === 2 && (
+      {activeTab === 3 && (
         <Grid container spacing={3}>
           <Grid item xs={12}>
             <Card>

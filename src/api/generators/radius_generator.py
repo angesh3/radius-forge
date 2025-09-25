@@ -144,12 +144,12 @@ class RADIUSPacket:
         # Parse attributes
         attributes = {}
         offset = 20
-        while offset < len(data):
+        while offset < length and offset < len(data):
             if offset + 2 > len(data):
                 break
 
             attr_type, attr_length = struct.unpack("!BB", data[offset : offset + 2])
-            if attr_length < 2 or offset + attr_length > len(data):
+            if attr_length < 2 or offset + attr_length > length or offset + attr_length > len(data):
                 break
 
             attr_value = data[offset + 2 : offset + attr_length]

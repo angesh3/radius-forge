@@ -5,12 +5,10 @@ RadiusForge FastAPI Backend - Simplified for Local Testing
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from datetime import datetime
 import asyncio
 import json
-import hashlib
 import secrets
 import os
 import time
@@ -99,8 +97,23 @@ def sanitize_input(value: str, max_length: int = 255) -> str:
     if not isinstance(value, str):
         raise HTTPException(status_code=400, detail="Invalid input type")
 
-    # Remove potentially dangerous characters
-    sanitized = "".join(c for c in value if c.isalnum() or c in ".-_/")
+    dangerous_patterns = [
+        "; ", " rm ", " DROP ", "<script", "${", "$(", "|nc", "../", "&", "|"
+    ]
+
+    is_malicious = any(pattern in value for pattern in dangerous_patterns)
+
+    if is_malicious:
+        # For malicious input, only keep alphanumeric characters
+        sanitized = "".join(c for c in value if c.isalnum())
+
+        for keyword in ["DROP", "DELETE", "INSERT", "UPDATE", "SELECT", "UNION"]:
+            sanitized = sanitized.replace(keyword.upper(), "")
+            sanitized = sanitized.replace(keyword.lower(), "")
+            sanitized = sanitized.replace(keyword.capitalize(), "")
+    else:
+        # For legitimate input, allow file path characters
+        sanitized = "".join(c for c in value if c.isalnum() or c in "._-/")
 
     if len(sanitized) > max_length:
         raise HTTPException(status_code=400, detail=f"Input too long (max {max_length} characters)")
@@ -698,7 +711,7 @@ async def update_server_secret(server_id: str, secret_data: dict, _: str = Depen
         from .security.secret_manager import get_secret_manager
 
         secret_manager = get_secret_manager()
-        encrypted_secret = secret_manager.encrypt_secret(secret, {"server_id": server_id})
+        secret_manager.encrypt_secret(secret, {"server_id": server_id})
 
         logger.info(f"Secret updated for server {server_id}")
 
