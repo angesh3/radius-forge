@@ -117,4 +117,6 @@ class ConnectionManager:
             await asyncio.sleep(2)
 
 
+WebSocketManager = ConnectionManager
+
 manager = ConnectionManager()
