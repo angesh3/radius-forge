@@ -22,7 +22,7 @@ from .routers import (
 )
 
 # Import WebSocket manager
-from .websocket_manager import WebSocketManager
+from .websocket_manager import ConnectionManager
 
 # Import database
 from .database import init_db, get_db
@@ -32,7 +32,7 @@ from .config import settings
 
 
 # WebSocket manager instance
-ws_manager = WebSocketManager()
+ws_manager = ConnectionManager()
 
 
 @asynccontextmanager

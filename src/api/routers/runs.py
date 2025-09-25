@@ -14,7 +14,7 @@ import logging
 
 from ..database import get_db
 from ..models import TestRun, TestStatus, TestType, TestMetric
-from ..websocket_manager import WebSocketManager
+from ..websocket_manager import ConnectionManager
 from ..config import settings
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ router = APIRouter()
 
 # Global test execution state
 active_tests: Dict[str, asyncio.Task] = {}
-ws_manager = WebSocketManager()
+ws_manager = ConnectionManager()
 
 
 # Pydantic models for request/response
@@ -95,22 +95,22 @@ async def list_test_runs(
     try:
         # Build query
         query = select(TestRun).order_by(desc(TestRun.created_at))
-        
+
         # Apply filters
         if status:
             query = query.where(TestRun.status == status)
         if test_type:
             query = query.where(TestRun.test_type == test_type)
-        
+
         # Apply pagination
         query = query.offset(skip).limit(limit)
-        
+
         # Execute query
         result = await db.execute(query)
         test_runs = result.scalars().all()
-        
+
         return [TestRunResponse(**test_run.to_dict()) for test_run in test_runs]
-        
+
     except Exception as e:
         logger.error(f"Failed to list test runs: {e}")
         raise HTTPException(status_code=500, detail="Failed to list test runs")
@@ -125,12 +125,12 @@ async def get_test_run(
     try:
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
         test_run = result.scalar_one_or_none()
-        
+
         if not test_run:
             raise HTTPException(status_code=404, detail="Test run not found")
-        
+
         return TestRunResponse(**test_run.to_dict())
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -149,10 +149,10 @@ async def create_test_run(
         active_count = len([t for t in active_tests.values() if not t.done()])
         if active_count >= settings.MAX_CONCURRENT_TESTS:
             raise HTTPException(
-                status_code=429, 
+                status_code=429,
                 detail=f"Maximum concurrent tests ({settings.MAX_CONCURRENT_TESTS}) reached"
             )
-        
+
         # Create test run
         test_run = TestRun(
             name=test_run_data.name,
@@ -167,14 +167,14 @@ async def create_test_run(
             radius_secret=test_run_data.radius_secret,
             test_config=test_run_data.test_config or {}
         )
-        
+
         db.add(test_run)
         await db.commit()
         await db.refresh(test_run)
-        
+
         logger.info(f"Created test run: {test_run.id}")
         return TestRunResponse(**test_run.to_dict())
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -192,27 +192,27 @@ async def update_test_run(
     try:
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
         test_run = result.scalar_one_or_none()
-        
+
         if not test_run:
             raise HTTPException(status_code=404, detail="Test run not found")
-        
+
         # Check if test is running
         if test_run.status in [TestStatus.RUNNING, TestStatus.STARTING]:
             raise HTTPException(status_code=400, detail="Cannot update running test")
-        
+
         # Update fields
         update_data = test_run_data.dict(exclude_unset=True)
         for field, value in update_data.items():
             setattr(test_run, field, value)
-        
+
         test_run.updated_at = datetime.utcnow()
-        
+
         await db.commit()
         await db.refresh(test_run)
-        
+
         logger.info(f"Updated test run: {test_run.id}")
         return TestRunResponse(**test_run.to_dict())
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -230,42 +230,42 @@ async def start_test_run(
     try:
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
         test_run = result.scalar_one_or_none()
-        
+
         if not test_run:
             raise HTTPException(status_code=404, detail="Test run not found")
-        
+
         # Check if already running
         if test_run.status in [TestStatus.RUNNING, TestStatus.STARTING]:
             raise HTTPException(status_code=400, detail="Test is already running")
-        
+
         # Check concurrent test limit
         active_count = len([t for t in active_tests.values() if not t.done()])
         if active_count >= settings.MAX_CONCURRENT_TESTS:
             raise HTTPException(
-                status_code=429, 
+                status_code=429,
                 detail=f"Maximum concurrent tests ({settings.MAX_CONCURRENT_TESTS}) reached"
             )
-        
+
         # Update status to starting
         test_run.status = TestStatus.STARTING
         test_run.started_at = datetime.utcnow()
         await db.commit()
-        
+
         # Start test execution in background
         task = asyncio.create_task(execute_test_run(test_run_id))
         active_tests[test_run_id] = task
-        
+
         logger.info(f"Started test run: {test_run_id}")
-        
+
         # Broadcast status update
         await ws_manager.broadcast({
             "type": "test_status",
             "test_run_id": test_run_id,
             "status": "starting"
         }, topic="test_updates")
-        
+
         return {"message": "Test run started", "test_run_id": test_run_id}
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -282,35 +282,35 @@ async def stop_test_run(
     try:
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
         test_run = result.scalar_one_or_none()
-        
+
         if not test_run:
             raise HTTPException(status_code=404, detail="Test run not found")
-        
+
         # Check if test is running
         if test_run.status not in [TestStatus.RUNNING, TestStatus.STARTING]:
             raise HTTPException(status_code=400, detail="Test is not running")
-        
+
         # Cancel the test task
         if test_run_id in active_tests:
             task = active_tests[test_run_id]
             if not task.done():
                 task.cancel()
-        
+
         # Update status
         test_run.status = TestStatus.STOPPING
         await db.commit()
-        
+
         logger.info(f"Stopping test run: {test_run_id}")
-        
+
         # Broadcast status update
         await ws_manager.broadcast({
             "type": "test_status",
             "test_run_id": test_run_id,
             "status": "stopping"
         }, topic="test_updates")
-        
+
         return {"message": "Test run stopping", "test_run_id": test_run_id}
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -327,28 +327,28 @@ async def delete_test_run(
     try:
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
         test_run = result.scalar_one_or_none()
-        
+
         if not test_run:
             raise HTTPException(status_code=404, detail="Test run not found")
-        
+
         # Check if test is running
         if test_run.status in [TestStatus.RUNNING, TestStatus.STARTING]:
             raise HTTPException(status_code=400, detail="Cannot delete running test")
-        
+
         # Cancel any pending task
         if test_run_id in active_tests:
             task = active_tests[test_run_id]
             if not task.done():
                 task.cancel()
             del active_tests[test_run_id]
-        
+
         # Delete from database
         await db.delete(test_run)
         await db.commit()
-        
+
         logger.info(f"Deleted test run: {test_run_id}")
         return {"message": "Test run deleted", "test_run_id": test_run_id}
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -367,20 +367,20 @@ async def get_test_metrics(
         # Check if test run exists
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
         test_run = result.scalar_one_or_none()
-        
+
         if not test_run:
             raise HTTPException(status_code=404, detail="Test run not found")
-        
+
         # Get recent metrics
         query = select(TestMetric).where(
             TestMetric.test_run_id == test_run_id
         ).order_by(desc(TestMetric.timestamp)).limit(limit)
-        
+
         result = await db.execute(query)
         metrics = result.scalars().all()
-        
+
         return [metric.to_dict() for metric in metrics]
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -396,33 +396,33 @@ async def execute_test_run(test_run_id: str):
             # Get test run
             result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
             test_run = result.scalar_one_or_none()
-            
+
             if not test_run:
                 return
-            
+
             # Update status to running
             test_run.status = TestStatus.RUNNING
             await db.commit()
-            
+
             # Broadcast status update
             await ws_manager.broadcast({
                 "type": "test_status",
                 "test_run_id": test_run_id,
                 "status": "running"
             }, topic="test_updates")
-            
+
             # Mock test execution
             duration = test_run.duration_seconds
             start_time = datetime.utcnow()
-            
+
             for i in range(duration):
                 if test_run_id not in active_tests:
                     break  # Test was cancelled
-                
+
                 # Create mock metrics
                 elapsed = i + 1
                 current_rps = test_run.target_rps * min(1.0, elapsed / test_run.ramp_up_seconds)
-                
+
                 metric = TestMetric(
                     test_run_id=test_run_id,
                     elapsed_seconds=elapsed,
@@ -441,19 +441,19 @@ async def execute_test_run(test_run_id: str):
                     error_count=int(current_rps * 0.005),
                     timeout_count=int(current_rps * 0.001)
                 )
-                
+
                 db.add(metric)
                 await db.commit()
-                
+
                 # Broadcast real-time metrics
                 await ws_manager.broadcast({
                     "type": "test_metrics",
                     "test_run_id": test_run_id,
                     "metrics": metric.to_dict()
                 }, topic="test_updates")
-                
+
                 await asyncio.sleep(1)
-            
+
             # Complete the test
             test_run.status = TestStatus.COMPLETED
             test_run.completed_at = datetime.utcnow()
@@ -465,54 +465,54 @@ async def execute_test_run(test_run_id: str):
             test_run.avg_latency_ms = 45.0
             test_run.p95_latency_ms = 120.0
             test_run.p99_latency_ms = 250.0
-            
+
             await db.commit()
-            
+
             # Broadcast completion
             await ws_manager.broadcast({
                 "type": "test_status",
                 "test_run_id": test_run_id,
                 "status": "completed"
             }, topic="test_updates")
-            
+
     except asyncio.CancelledError:
         # Handle test cancellation
         async with get_db_context() as db:
             result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
             test_run = result.scalar_one_or_none()
-            
+
             if test_run:
                 test_run.status = TestStatus.CANCELLED
                 test_run.completed_at = datetime.utcnow()
                 await db.commit()
-                
+
                 await ws_manager.broadcast({
                     "type": "test_status",
                     "test_run_id": test_run_id,
                     "status": "cancelled"
                 }, topic="test_updates")
-        
+
     except Exception as e:
         # Handle test failure
         logger.error(f"Test execution failed for {test_run_id}: {e}")
-        
+
         async with get_db_context() as db:
             result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
             test_run = result.scalar_one_or_none()
-            
+
             if test_run:
                 test_run.status = TestStatus.FAILED
                 test_run.completed_at = datetime.utcnow()
                 test_run.error_details = {"error": str(e)}
                 await db.commit()
-                
+
                 await ws_manager.broadcast({
                     "type": "test_status",
                     "test_run_id": test_run_id,
                     "status": "failed",
                     "error": str(e)
                 }, topic="test_updates")
-    
+
     finally:
         # Clean up
         if test_run_id in active_tests:

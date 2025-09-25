@@ -31,7 +31,7 @@ class NADCreate(BaseModel):
     description: Optional[str] = None
     device_type: NADType = NADType.SWITCH
     ip_address: str = Field(..., min_length=7, max_length=45)  # Support IPv4/IPv6
-    mac_address: Optional[str] = Field(None, regex=r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$')
+    mac_address: Optional[str] = Field(None, pattern=r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$')
     vendor: Optional[str] = Field(None, max_length=100)
     model: Optional[str] = Field(None, max_length=100)
     software_version: Optional[str] = Field(None, max_length=100)
@@ -57,7 +57,7 @@ class NADUpdate(BaseModel):
     description: Optional[str] = None
     device_type: Optional[NADType] = None
     ip_address: Optional[str] = Field(None, min_length=7, max_length=45)
-    mac_address: Optional[str] = Field(None, regex=r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$')
+    mac_address: Optional[str] = Field(None, pattern=r'^([0-9A-Fa-f]{2}[:-]){5}([0-9A-Fa-f]{2})$')
     vendor: Optional[str] = Field(None, max_length=100)
     model: Optional[str] = Field(None, max_length=100)
     software_version: Optional[str] = Field(None, max_length=100)
@@ -66,7 +66,7 @@ class NADUpdate(BaseModel):
     location: Optional[str] = Field(None, max_length=255)
     group_name: Optional[str] = Field(None, max_length=100)
     is_active: Optional[bool] = None
-    health_status: Optional[str] = Field(None, regex=r'^(healthy|warning|critical|unknown)$')
+    health_status: Optional[str] = Field(None, pattern=r'^(healthy|warning|critical|unknown)$')
     device_config: Optional[Dict[str, Any]] = None
     capabilities: Optional[Dict[str, Any]] = None
     
