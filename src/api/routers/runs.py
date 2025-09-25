@@ -32,6 +32,7 @@ from pydantic import BaseModel, Field
 
 class TestRunCreate(BaseModel):
     """Request model for creating a test run"""
+
     name: str = Field(..., min_length=1, max_length=255)
     description: Optional[str] = None
     test_type: TestType = TestType.PERFORMANCE
@@ -47,6 +48,7 @@ class TestRunCreate(BaseModel):
 
 class TestRunUpdate(BaseModel):
     """Request model for updating a test run"""
+
     name: Optional[str] = Field(None, min_length=1, max_length=255)
     description: Optional[str] = None
     target_rps: Optional[int] = Field(None, ge=1, le=settings.MAX_RPS_LIMIT)
@@ -56,6 +58,7 @@ class TestRunUpdate(BaseModel):
 
 class TestRunResponse(BaseModel):
     """Response model for test run"""
+
     id: str
     name: str
     description: Optional[str]
@@ -89,7 +92,7 @@ async def list_test_runs(
     limit: int = Query(50, ge=1, le=100),
     status: Optional[TestStatus] = None,
     test_type: Optional[TestType] = None,
-    db: AsyncSession = Depends(get_db)
+    db: AsyncSession = Depends(get_db),
 ):
     """List test runs with filtering and pagination"""
     try:
@@ -117,10 +120,7 @@ async def list_test_runs(
 
 
 @router.get("/{test_run_id}", response_model=TestRunResponse)
-async def get_test_run(
-    test_run_id: str,
-    db: AsyncSession = Depends(get_db)
-):
+async def get_test_run(test_run_id: str, db: AsyncSession = Depends(get_db)):
     """Get a specific test run by ID"""
     try:
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
@@ -139,18 +139,14 @@ async def get_test_run(
 
 
 @router.post("/", response_model=TestRunResponse)
-async def create_test_run(
-    test_run_data: TestRunCreate,
-    db: AsyncSession = Depends(get_db)
-):
+async def create_test_run(test_run_data: TestRunCreate, db: AsyncSession = Depends(get_db)):
     """Create a new test run"""
     try:
         # Check concurrent test limit
         active_count = len([t for t in active_tests.values() if not t.done()])
         if active_count >= settings.MAX_CONCURRENT_TESTS:
             raise HTTPException(
-                status_code=429,
-                detail=f"Maximum concurrent tests ({settings.MAX_CONCURRENT_TESTS}) reached"
+                status_code=429, detail=f"Maximum concurrent tests ({settings.MAX_CONCURRENT_TESTS}) reached"
             )
 
         # Create test run
@@ -165,7 +161,7 @@ async def create_test_run(
             radius_server_host=test_run_data.radius_server_host,
             radius_server_port=test_run_data.radius_server_port,
             radius_secret=test_run_data.radius_secret,
-            test_config=test_run_data.test_config or {}
+            test_config=test_run_data.test_config or {},
         )
 
         db.add(test_run)
@@ -183,11 +179,7 @@ async def create_test_run(
 
 
 @router.put("/{test_run_id}", response_model=TestRunResponse)
-async def update_test_run(
-    test_run_id: str,
-    test_run_data: TestRunUpdate,
-    db: AsyncSession = Depends(get_db)
-):
+async def update_test_run(test_run_id: str, test_run_data: TestRunUpdate, db: AsyncSession = Depends(get_db)):
     """Update a test run (only if not running)"""
     try:
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
@@ -221,11 +213,7 @@ async def update_test_run(
 
 
 @router.post("/{test_run_id}/start")
-async def start_test_run(
-    test_run_id: str,
-    background_tasks: BackgroundTasks,
-    db: AsyncSession = Depends(get_db)
-):
+async def start_test_run(test_run_id: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     """Start a test run"""
     try:
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
@@ -242,8 +230,7 @@ async def start_test_run(
         active_count = len([t for t in active_tests.values() if not t.done()])
         if active_count >= settings.MAX_CONCURRENT_TESTS:
             raise HTTPException(
-                status_code=429,
-                detail=f"Maximum concurrent tests ({settings.MAX_CONCURRENT_TESTS}) reached"
+                status_code=429, detail=f"Maximum concurrent tests ({settings.MAX_CONCURRENT_TESTS}) reached"
             )
 
         # Update status to starting
@@ -258,11 +245,9 @@ async def start_test_run(
         logger.info(f"Started test run: {test_run_id}")
 
         # Broadcast status update
-        await ws_manager.broadcast({
-            "type": "test_status",
-            "test_run_id": test_run_id,
-            "status": "starting"
-        }, topic="test_updates")
+        await ws_manager.broadcast(
+            {"type": "test_status", "test_run_id": test_run_id, "status": "starting"}, topic="test_updates"
+        )
 
         return {"message": "Test run started", "test_run_id": test_run_id}
 
@@ -274,10 +259,7 @@ async def start_test_run(
 
 
 @router.post("/{test_run_id}/stop")
-async def stop_test_run(
-    test_run_id: str,
-    db: AsyncSession = Depends(get_db)
-):
+async def stop_test_run(test_run_id: str, db: AsyncSession = Depends(get_db)):
     """Stop a running test"""
     try:
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
@@ -303,11 +285,9 @@ async def stop_test_run(
         logger.info(f"Stopping test run: {test_run_id}")
 
         # Broadcast status update
-        await ws_manager.broadcast({
-            "type": "test_status",
-            "test_run_id": test_run_id,
-            "status": "stopping"
-        }, topic="test_updates")
+        await ws_manager.broadcast(
+            {"type": "test_status", "test_run_id": test_run_id, "status": "stopping"}, topic="test_updates"
+        )
 
         return {"message": "Test run stopping", "test_run_id": test_run_id}
 
@@ -319,10 +299,7 @@ async def stop_test_run(
 
 
 @router.delete("/{test_run_id}")
-async def delete_test_run(
-    test_run_id: str,
-    db: AsyncSession = Depends(get_db)
-):
+async def delete_test_run(test_run_id: str, db: AsyncSession = Depends(get_db)):
     """Delete a test run (only if not running)"""
     try:
         result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
@@ -358,9 +335,7 @@ async def delete_test_run(
 
 @router.get("/{test_run_id}/metrics")
 async def get_test_metrics(
-    test_run_id: str,
-    limit: int = Query(100, ge=1, le=1000),
-    db: AsyncSession = Depends(get_db)
+    test_run_id: str, limit: int = Query(100, ge=1, le=1000), db: AsyncSession = Depends(get_db)
 ):
     """Get real-time metrics for a test run"""
     try:
@@ -372,9 +347,12 @@ async def get_test_metrics(
             raise HTTPException(status_code=404, detail="Test run not found")
 
         # Get recent metrics
-        query = select(TestMetric).where(
-            TestMetric.test_run_id == test_run_id
-        ).order_by(desc(TestMetric.timestamp)).limit(limit)
+        query = (
+            select(TestMetric)
+            .where(TestMetric.test_run_id == test_run_id)
+            .order_by(desc(TestMetric.timestamp))
+            .limit(limit)
+        )
 
         result = await db.execute(query)
         metrics = result.scalars().all()
@@ -405,11 +383,9 @@ async def execute_test_run(test_run_id: str):
             await db.commit()
 
             # Broadcast status update
-            await ws_manager.broadcast({
-                "type": "test_status",
-                "test_run_id": test_run_id,
-                "status": "running"
-            }, topic="test_updates")
+            await ws_manager.broadcast(
+                {"type": "test_status", "test_run_id": test_run_id, "status": "running"}, topic="test_updates"
+            )
 
             # Mock test execution
             duration = test_run.duration_seconds
@@ -439,18 +415,17 @@ async def execute_test_run(test_run_id: str):
                     timeout_rate=0.1,
                     success_count=int(current_rps * 0.995),
                     error_count=int(current_rps * 0.005),
-                    timeout_count=int(current_rps * 0.001)
+                    timeout_count=int(current_rps * 0.001),
                 )
 
                 db.add(metric)
                 await db.commit()
 
                 # Broadcast real-time metrics
-                await ws_manager.broadcast({
-                    "type": "test_metrics",
-                    "test_run_id": test_run_id,
-                    "metrics": metric.to_dict()
-                }, topic="test_updates")
+                await ws_manager.broadcast(
+                    {"type": "test_metrics", "test_run_id": test_run_id, "metrics": metric.to_dict()},
+                    topic="test_updates",
+                )
 
                 await asyncio.sleep(1)
 
@@ -469,11 +444,9 @@ async def execute_test_run(test_run_id: str):
             await db.commit()
 
             # Broadcast completion
-            await ws_manager.broadcast({
-                "type": "test_status",
-                "test_run_id": test_run_id,
-                "status": "completed"
-            }, topic="test_updates")
+            await ws_manager.broadcast(
+                {"type": "test_status", "test_run_id": test_run_id, "status": "completed"}, topic="test_updates"
+            )
 
     except asyncio.CancelledError:
         # Handle test cancellation
@@ -486,11 +459,9 @@ async def execute_test_run(test_run_id: str):
                 test_run.completed_at = datetime.utcnow()
                 await db.commit()
 
-                await ws_manager.broadcast({
-                    "type": "test_status",
-                    "test_run_id": test_run_id,
-                    "status": "cancelled"
-                }, topic="test_updates")
+                await ws_manager.broadcast(
+                    {"type": "test_status", "test_run_id": test_run_id, "status": "cancelled"}, topic="test_updates"
+                )
 
     except Exception as e:
         # Handle test failure
@@ -506,12 +477,10 @@ async def execute_test_run(test_run_id: str):
                 test_run.error_details = {"error": str(e)}
                 await db.commit()
 
-                await ws_manager.broadcast({
-                    "type": "test_status",
-                    "test_run_id": test_run_id,
-                    "status": "failed",
-                    "error": str(e)
-                }, topic="test_updates")
+                await ws_manager.broadcast(
+                    {"type": "test_status", "test_run_id": test_run_id, "status": "failed", "error": str(e)},
+                    topic="test_updates",
+                )
 
     finally:
         # Clean up

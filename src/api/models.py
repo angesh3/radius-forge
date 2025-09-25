@@ -17,6 +17,7 @@ from .database import Base
 
 class TestStatus(str, Enum):
     """Test execution status"""
+
     PENDING = "pending"
     STARTING = "starting"
     RUNNING = "running"
@@ -28,6 +29,7 @@ class TestStatus(str, Enum):
 
 class TestType(str, Enum):
     """Type of test"""
+
     PERFORMANCE = "performance"
     SCALE = "scale"
     THREAT = "threat"
@@ -36,6 +38,7 @@ class TestType(str, Enum):
 
 class NADType(str, Enum):
     """Network Access Device type"""
+
     SWITCH = "switch"
     ROUTER = "router"
     WIRELESS_CONTROLLER = "wireless_controller"
@@ -46,33 +49,34 @@ class NADType(str, Enum):
 
 class TestRun(Base):
     """Test run model"""
+
     __tablename__ = "test_runs"
-    
+
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False)
     description = Column(Text)
-    
+
     # Test configuration
     test_type = Column(SQLEnum(TestType), nullable=False, default=TestType.PERFORMANCE)
     status = Column(SQLEnum(TestStatus), nullable=False, default=TestStatus.PENDING)
-    
+
     # Test parameters
     target_rps = Column(Integer, nullable=False, default=1000)
     duration_seconds = Column(Integer, nullable=False, default=300)
     ramp_up_seconds = Column(Integer, default=30)
     ramp_down_seconds = Column(Integer, default=30)
-    
+
     # Target configuration
     radius_server_host = Column(String(255), nullable=False)
     radius_server_port = Column(Integer, nullable=False, default=1812)
     radius_secret = Column(String(255), nullable=False)
-    
+
     # Execution tracking
     started_at = Column(DateTime, nullable=True)
     completed_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    
+
     # Results summary (updated during test execution)
     packets_sent = Column(Integer, default=0)
     packets_received = Column(Integer, default=0)
@@ -82,15 +86,15 @@ class TestRun(Base):
     avg_latency_ms = Column(Float, default=0.0)
     p95_latency_ms = Column(Float, default=0.0)
     p99_latency_ms = Column(Float, default=0.0)
-    
+
     # Configuration as JSON
     test_config = Column(JSON, nullable=True)
     error_details = Column(JSON, nullable=True)
-    
+
     # Relationships
     reports = relationship("Report", back_populates="test_run", cascade="all, delete-orphan")
     metrics = relationship("TestMetric", back_populates="test_run", cascade="all, delete-orphan")
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -118,18 +122,19 @@ class TestRun(Base):
             "p95_latency_ms": self.p95_latency_ms,
             "p99_latency_ms": self.p99_latency_ms,
             "test_config": self.test_config,
-            "error_details": self.error_details
+            "error_details": self.error_details,
         }
 
 
 class NAD(Base):
     """Network Access Device model"""
+
     __tablename__ = "nads"
-    
+
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False)
     description = Column(Text)
-    
+
     # Device information
     device_type = Column(SQLEnum(NADType), nullable=False, default=NADType.SWITCH)
     ip_address = Column(String(45), nullable=False)  # Support IPv6
@@ -137,28 +142,28 @@ class NAD(Base):
     vendor = Column(String(100), nullable=True)
     model = Column(String(100), nullable=True)
     software_version = Column(String(100), nullable=True)
-    
+
     # RADIUS configuration
     radius_secret = Column(String(255), nullable=False)
     coa_port = Column(Integer, default=3799)
-    
+
     # Location and grouping
     location = Column(String(255), nullable=True)
     group_name = Column(String(100), nullable=True)
-    
+
     # Status and health
     is_active = Column(Boolean, default=True)
     last_seen = Column(DateTime, nullable=True)
     health_status = Column(String(50), default="unknown")  # healthy, warning, critical, unknown
-    
+
     # Metadata
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    
+
     # Configuration as JSON
     device_config = Column(JSON, nullable=True)
     capabilities = Column(JSON, nullable=True)
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -181,41 +186,42 @@ class NAD(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             "device_config": self.device_config,
-            "capabilities": self.capabilities
+            "capabilities": self.capabilities,
         }
 
 
 class Report(Base):
     """Test report model"""
+
     __tablename__ = "reports"
-    
+
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     test_run_id = Column(String, ForeignKey("test_runs.id"), nullable=False)
-    
+
     # Report metadata
     name = Column(String(255), nullable=False)
     report_type = Column(String(50), nullable=False, default="test_summary")  # test_summary, detailed, comparison
     format = Column(String(20), nullable=False, default="html")  # html, pdf, json, csv
-    
+
     # File information
     file_path = Column(String(500), nullable=True)
     file_size_bytes = Column(Integer, nullable=True)
-    
+
     # Report content (for small reports stored in DB)
     content = Column(Text, nullable=True)
     summary_data = Column(JSON, nullable=True)
-    
+
     # Status
     is_generated = Column(Boolean, default=False)
     generation_error = Column(Text, nullable=True)
-    
+
     # Timestamps
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     generated_at = Column(DateTime, nullable=True)
-    
+
     # Relationships
     test_run = relationship("TestRun", back_populates="reports")
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -231,31 +237,32 @@ class Report(Base):
             "is_generated": self.is_generated,
             "generation_error": self.generation_error,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "generated_at": self.generated_at.isoformat() if self.generated_at else None
+            "generated_at": self.generated_at.isoformat() if self.generated_at else None,
         }
 
 
 class TestMetric(Base):
     """Real-time test metrics model"""
+
     __tablename__ = "test_metrics"
-    
+
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     test_run_id = Column(String, ForeignKey("test_runs.id"), nullable=False)
-    
+
     # Timestamp
     timestamp = Column(DateTime, nullable=False, server_default=func.now())
     elapsed_seconds = Column(Float, nullable=False)  # Seconds since test start
-    
+
     # Performance metrics
     current_rps = Column(Float, nullable=False, default=0.0)
     target_rps = Column(Float, nullable=False, default=0.0)
     delivered_percent = Column(Float, nullable=False, default=0.0)
-    
+
     # Connection metrics
     active_sockets = Column(Integer, nullable=False, default=0)
     total_connections = Column(Integer, nullable=False, default=0)
     failed_connections = Column(Integer, nullable=False, default=0)
-    
+
     # Latency metrics (milliseconds)
     avg_latency = Column(Float, nullable=False, default=0.0)
     min_latency = Column(Float, nullable=False, default=0.0)
@@ -263,23 +270,23 @@ class TestMetric(Base):
     p50_latency = Column(Float, nullable=False, default=0.0)
     p95_latency = Column(Float, nullable=False, default=0.0)
     p99_latency = Column(Float, nullable=False, default=0.0)
-    
+
     # Response metrics
     success_count = Column(Integer, nullable=False, default=0)
     error_count = Column(Integer, nullable=False, default=0)
     timeout_count = Column(Integer, nullable=False, default=0)
-    
+
     # Rates (percentage)
     success_rate = Column(Float, nullable=False, default=0.0)
     error_rate = Column(Float, nullable=False, default=0.0)
     timeout_rate = Column(Float, nullable=False, default=0.0)
-    
+
     # Additional metrics as JSON
     custom_metrics = Column(JSON, nullable=True)
-    
+
     # Relationships
     test_run = relationship("TestRun", back_populates="metrics")
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -305,34 +312,35 @@ class TestMetric(Base):
             "success_rate": self.success_rate,
             "error_rate": self.error_rate,
             "timeout_rate": self.timeout_rate,
-            "custom_metrics": self.custom_metrics
+            "custom_metrics": self.custom_metrics,
         }
 
 
 class TestPreset(Base):
     """Test configuration presets"""
+
     __tablename__ = "test_presets"
-    
+
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     name = Column(String(255), nullable=False)
     description = Column(Text)
-    
+
     # Preset type and category
     test_type = Column(SQLEnum(TestType), nullable=False, default=TestType.PERFORMANCE)
     category = Column(String(100), nullable=True)  # e.g., "load_test", "stress_test", "baseline"
-    
+
     # Configuration
     config_data = Column(JSON, nullable=False)
-    
+
     # Metadata
     is_system_preset = Column(Boolean, default=False)  # System vs user-created
     is_active = Column(Boolean, default=True)
     usage_count = Column(Integer, default=0)
-    
+
     # Timestamps
     created_at = Column(DateTime, nullable=False, server_default=func.now())
     updated_at = Column(DateTime, nullable=False, server_default=func.now(), onupdate=func.now())
-    
+
     def to_dict(self) -> Dict[str, Any]:
         """Convert to dictionary"""
         return {
@@ -346,7 +354,7 @@ class TestPreset(Base):
             "is_active": self.is_active,
             "usage_count": self.usage_count,
             "created_at": self.created_at.isoformat() if self.created_at else None,
-            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
         }
 
 
@@ -354,19 +362,19 @@ class TestPreset(Base):
 from sqlalchemy import Index
 
 # Indexes for test_runs
-Index('idx_test_runs_status', TestRun.status)
-Index('idx_test_runs_created_at', TestRun.created_at)
-Index('idx_test_runs_test_type', TestRun.test_type)
+Index("idx_test_runs_status", TestRun.status)
+Index("idx_test_runs_created_at", TestRun.created_at)
+Index("idx_test_runs_test_type", TestRun.test_type)
 
 # Indexes for test_metrics
-Index('idx_test_metrics_test_run_id', TestMetric.test_run_id)
-Index('idx_test_metrics_timestamp', TestMetric.timestamp)
+Index("idx_test_metrics_test_run_id", TestMetric.test_run_id)
+Index("idx_test_metrics_timestamp", TestMetric.timestamp)
 
 # Indexes for nads
-Index('idx_nads_ip_address', NAD.ip_address)
-Index('idx_nads_is_active', NAD.is_active)
-Index('idx_nads_device_type', NAD.device_type)
+Index("idx_nads_ip_address", NAD.ip_address)
+Index("idx_nads_is_active", NAD.is_active)
+Index("idx_nads_device_type", NAD.device_type)
 
 # Indexes for reports
-Index('idx_reports_test_run_id', Report.test_run_id)
-Index('idx_reports_created_at', Report.created_at)
+Index("idx_reports_test_run_id", Report.test_run_id)
+Index("idx_reports_created_at", Report.created_at)
