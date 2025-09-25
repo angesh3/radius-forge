@@ -236,7 +236,7 @@ Copyright © 2024 RadiusForge Team. All rights reserved.
 
 ## 📞 Support
 
-- GitHub Issues: [Report bugs](https://github.com/your-org/radius-forge/issues)
+- GitHub Issues: [Report bugs](https://github.com/angesh3/radius-forge/issues)
 - Documentation: [Read the docs](./docs)
 - Email: support@radiusforge.local
 
