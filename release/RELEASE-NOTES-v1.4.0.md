@@ -2,7 +2,7 @@
 
 ## Release Information
 - **Version**: 1.4.0
-- **Build Date**: 20250814_154406
+- **Build Date**: 20250929_032137
 - **Port Range**: 8910-8920 (11 dedicated services)
 - **Deployment Options**: Traditional + Container
 - **OS Support**: macOS, RHEL 8.8+, CentOS 8+, Ubuntu 20.04+, Docker
@@ -11,78 +11,50 @@
 
 ### Complete Bundle (Traditional + Container)
 - **File**: RADIUSFORGE-PRODUCTION-V1.4.0-COMPLETE.tar.gz
-- **Size**: 33M
-- **SHA256**: 117625f59f62d30ded3100449471accd0c910d66a58ea4c9e8d31e6ec5ae3828
+- **Size**: 14M
+- **SHA256**: fbef4d4fa6da5851f1999400c33069d8213304a54f51ff9fd7bcdeb0b238805b
 - **Use for**: Any deployment method on any supported OS
 
 ## What's New in v1.4.0
 
-### Major Feature: Container Deployment
-1. **Docker All-in-One Container**
-   - Single container with all services
-   - No dependencies except Docker
-   - Built-in Nginx and Supervisor
-   - Health monitoring included
+1. **Unified Bundle Creation**
+   - Consolidated all versioned bundle scripts into single create-bundle.sh
+   - Automated archiving of previous versions with retention policies
+   - Comprehensive bundle validation and quality gates
 
-2. **Flexible Deployment Options**
-   - Choose between traditional or container
-   - Unified deployment script
-   - Same bundle works for both methods
+2. **Streamlined Deployment**
+   - Single deploy.sh script with deployment method chooser
+   - Unified install-upgrade.sh for both traditional and container deployments
+   - Removed redundant deployment scripts
 
-3. **Enhanced Portability**
-   - Works identically on macOS, Linux, Windows (with Docker)
-   - Simplified installation process
-   - Consistent experience across platforms
+3. **Enhanced Quality Assurance**
+   - Bundle structure validation
+   - Security scanning for sensitive files
+   - Dependency verification
+   - Deployment testing
 
-### Improvements
-- Fixed Live Logs color scheme (from v1.3.2)
-- Enhanced startup scripts for macOS and RHEL
-- Better service management
-- Comprehensive deployment documentation
+4. **Archive Management**
+   - Automatic archiving of previous bundle versions
+   - Configurable retention policies (count-based and time-based)
+   - Organized archive structure in release/archive-v* directories
 
-## Deployment Instructions
 
-### Extract Bundle
 ```bash
 tar -xzf RADIUSFORGE-PRODUCTION-V1.4.0-COMPLETE.tar.gz
 cd RADIUSFORGE-PRODUCTION-V1.4.0-COMPLETE
-```
-
-### Option 1: Automatic Deployment (Recommended)
-```bash
 ./deploy.sh
 # Choose:
 #   1) Traditional Installation
 #   2) Container Deployment
 ```
 
-### Option 2: Traditional Installation
+#### Option 2: Traditional Installation
 ```bash
 ./install-traditional.sh
 ```
 
-### Option 3: Container Deployment
 ```bash
 ./install-container.sh
-```
-
-## Quick Start Commands
-
-### Traditional (macOS)
-```bash
-/opt/radiusforge/scripts/startup/radiusforge-macos.sh start
-```
-
-### Traditional (RHEL)
-```bash
-sudo systemctl start radiusforge
-```
-
-### Container
-```bash
-docker start radiusforge
-# or
-docker-compose up -d
 ```
 
 ## Port Allocation
@@ -122,6 +94,16 @@ docker start radiusforge
 # Shell access
 docker exec -it radiusforge /bin/bash
 ```
+
+
+This bundle has been validated with:
+- ✓ Bundle structure verification
+- ✓ Security scanning
+- ✓ Dependency verification
+- ✓ Deployment testing
+- ✓ Checksum validation
+
+See validation report: `release/validation-1.4.0.log`
 
 ## Support
 - Documentation: See docs/ directory

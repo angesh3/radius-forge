@@ -47,6 +47,7 @@ cd RADIUSFORGE-PRODUCTION-V1.4.0-COMPLETE
 - ✅ RHEL/systemd service files
 - ✅ Docker configuration
 - ✅ All documentation
+- ✅ Bundle validation reports
 
 ## 📊 Service Ports
 
@@ -79,7 +80,8 @@ All services use ports **8910-8920**:
 
 ---
 Version: 1.4.0
-Build: 20250814_154406
+Build: 20250929_032137
 Bundle: RADIUSFORGE-PRODUCTION-V1.4.0-COMPLETE.tar.gz
-Size: 33M
-SHA256: 117625f59f62d30ded3100449471accd0c910d66a58ea4c9e8d31e6ec5ae3828
+Size: 14M
+SHA256: fbef4d4fa6da5851f1999400c33069d8213304a54f51ff9fd7bcdeb0b238805b
+Validation: release/validation-1.4.0.log
