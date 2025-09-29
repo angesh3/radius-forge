@@ -175,22 +175,31 @@ pytest --cov=src --cov-report=html
 
 ## 🚀 Deployment
 
-### Production Bundle
+### Unified Bundle Creation
 ```bash
-make bundle
+./scripts/create-bundle.sh
 ```
 
-Creates a deployment bundle with:
+Creates a comprehensive deployment bundle with:
 - Compiled frontend assets
 - Python wheel packages
 - Database migrations
 - Configuration templates
 - SBOM (Software Bill of Materials)
-- Deployment scripts
+- Unified deployment scripts
+- Bundle validation and quality checks
+- Automatic archiving of previous versions
 
-### Docker Deployment
+### Deployment Options
 ```bash
-docker-compose -f docker-compose.prod.yml up -d
+# Extract bundle and choose deployment method
+tar -xzf release/RADIUSFORGE-PRODUCTION-V*.tar.gz
+cd RADIUSFORGE-PRODUCTION-V*
+./deploy.sh  # Choose: 1) Traditional or 2) Container
+
+# Or use unified install-upgrade script directly
+./scripts/install-upgrade.sh install traditional
+./scripts/install-upgrade.sh install container
 ```
 
 ## 🤝 Contributing

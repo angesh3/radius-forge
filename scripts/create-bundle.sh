@@ -331,7 +331,6 @@ echo -e "${GREEN}✓ Python wheels ready${NC}"
 echo "Step 4: Copying application files..."
 cp -r src ${BUILD_DIR}/${FULL_BUNDLE}/
 cp -r ui/dist ${BUILD_DIR}/${FULL_BUNDLE}/ui-build 2>/dev/null || cp -r ui/build ${BUILD_DIR}/${FULL_BUNDLE}/ui-build
-cp -r scripts ${BUILD_DIR}/${FULL_BUNDLE}/
 cp -r docs ${BUILD_DIR}/${FULL_BUNDLE}/
 cp -r wheels ${BUILD_DIR}/${FULL_BUNDLE}/
 cp -r docker ${BUILD_DIR}/${FULL_BUNDLE}/container/
@@ -342,6 +341,10 @@ cp LICENSE ${BUILD_DIR}/${FULL_BUNDLE}/ 2>/dev/null || echo "  No LICENSE file f
 cp Dockerfile ${BUILD_DIR}/${FULL_BUNDLE}/container/
 cp docker-compose-allinone.yml ${BUILD_DIR}/${FULL_BUNDLE}/container/docker-compose.yml
 cp nginx.conf ${BUILD_DIR}/${FULL_BUNDLE}/
+
+mkdir -p ${BUILD_DIR}/${FULL_BUNDLE}/scripts
+cp scripts/install-upgrade.sh ${BUILD_DIR}/${FULL_BUNDLE}/scripts/
+cp scripts/startup/* ${BUILD_DIR}/${FULL_BUNDLE}/scripts/ 2>/dev/null || echo "  No startup scripts found"
 
 cat > ${BUILD_DIR}/${FULL_BUNDLE}/.env.example << 'EOF'
 # RadiusForge Configuration

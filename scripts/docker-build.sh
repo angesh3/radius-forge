@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # RadiusForge Docker Container Build & Bundle Script
-# Version: 1.4.0
+# Version: 1.4.1 - Integrated with unified bundle creation
 # Creates containerized deployment bundle
 
 set -e
 
-VERSION="1.4.0"
+VERSION=$(cat VERSION 2>/dev/null || echo "1.4.1")
 IMAGE_NAME="radiusforge"
 IMAGE_TAG="${VERSION}-allinone"
 FULL_IMAGE="${IMAGE_NAME}:${IMAGE_TAG}"
@@ -438,4 +438,6 @@ echo "  • No external dependencies"
 echo "  • Persistent volumes for data/logs/config"
 echo "  • Health monitoring built-in"
 echo "  • Supports both docker and docker-compose"
+echo ""
+echo "⚠️  NOTE: This script is deprecated. Use './scripts/create-bundle.sh' for unified bundle creation."
 echo ""

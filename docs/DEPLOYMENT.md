@@ -1,9 +1,9 @@
 # RadiusForge Deployment Guide
 
-## Version 1.2.0 - Port Range 8910-8920
+## Version 1.4.1 - Unified Bundle Creation & Deployment
 
 ### Overview
-RadiusForge uses a dual-bundle deployment system with semantic versioning. Each deployment creates both a full bundle and a delta update from the previous version.
+RadiusForge uses a unified bundle creation and deployment system with comprehensive validation, archiving, and quality hardening. The consolidated workflow supports both traditional and container deployments.
 
 ## Port Configuration
 
@@ -46,109 +46,106 @@ Contains only changes since the last version:
 
 ## Creating a Deployment Bundle
 
-### Using the Version Manager
+### Unified Bundle Creation
 
 ```bash
-# Create deployment bundles (bumps patch version by default)
-python ops/version_manager.py
+# Create comprehensive deployment bundle with validation
+./scripts/create-bundle.sh
 
-# Specify version bump type
-python ops/version_manager.py --bump minor
-python ops/version_manager.py --bump major
+# Enable all quality checks (default)
+export ENABLE_SECURITY_SCAN=true
+export ENABLE_DEPENDENCY_CHECK=true
+export ENABLE_BUNDLE_TEST=true
+./scripts/create-bundle.sh
 
-# Check current version
-python ops/version_manager.py --current
-
-# View version history
-python ops/version_manager.py --history
+# Configure archive retention
+export ARCHIVE_RETENTION_COUNT=5
+export ARCHIVE_RETENTION_DAYS=90
+./scripts/create-bundle.sh
 ```
 
-### Using Make Commands
-
-```bash
-# Create bundle with automatic version bump
-make bundle
-
-# Full deployment cycle
-make test && make bundle
-```
+The unified script automatically:
+- Builds UI and prepares Python wheels
+- Creates both traditional and container deployment bundles
+- Validates bundle integrity and security
+- Archives previous versions with retention policies
+- Generates comprehensive deployment documentation
 
 ## Deployment Process
 
-### Full Deployment (New Installation)
+### Unified Deployment Workflow
 
-1. Extract the full bundle:
+1. Extract the bundle:
 ```bash
-tar -xzf radiusforge-1.2.0-full.tar.gz
+tar -xzf release/RADIUSFORGE-PRODUCTION-V*.tar.gz
+cd RADIUSFORGE-PRODUCTION-V*
 ```
 
-2. Run installation:
+2. Choose deployment method:
 ```bash
-./install.sh
+# Interactive deployment chooser
+./deploy.sh
+
+# Or use unified install-upgrade script directly
+./scripts/install-upgrade.sh install traditional
+./scripts/install-upgrade.sh install container
 ```
 
-3. Configure environment:
+3. Configure environment (optional):
 ```bash
 cp .env.example .env
 # Edit .env with your settings
 ```
 
-4. Start services:
+4. Verify deployment:
 ```bash
-docker-compose up -d
+# Check health status
+curl http://localhost:8917/health
+
+# Access web UI
+open http://localhost:8911
+```
+
+### Upgrade Existing Installation
+
+```bash
+# Extract new bundle
+tar -xzf RADIUSFORGE-PRODUCTION-V*.tar.gz
+cd RADIUSFORGE-PRODUCTION-V*
+
+# Upgrade with automatic backup
+./scripts/install-upgrade.sh upgrade traditional
 # OR
-systemctl start radiusforge-api
-systemctl start radiusforge-ui
-```
+./scripts/install-upgrade.sh upgrade container
 
-### Delta Update (Existing Installation)
-
-1. Backup current installation:
-```bash
-cp -r /opt/radiusforge /opt/radiusforge.backup
-```
-
-2. Extract delta bundle:
-```bash
-tar -xzf radiusforge-1.1.0-to-1.2.0-delta.tar.gz
-```
-
-3. Run update script:
-```bash
-./update.sh
-```
-
-4. Verify update:
-```bash
+# Verify upgrade
 curl http://localhost:8910/api/system/version
 ```
 
 ## Rollback Procedure
 
 ### Automatic Rollback
-The update script creates a backup before applying changes:
+The unified install-upgrade script creates automatic backups:
 
 ```bash
-# Restore from automatic backup
-mv backup /opt/radiusforge
-systemctl restart radiusforge-api
+# Rollback to previous version
+./scripts/install-upgrade.sh rollback traditional
+# OR
+./scripts/install-upgrade.sh rollback container
 ```
 
-### Manual Rollback to Specific Version
+### Manual Rollback to Archived Version
 
 ```bash
-# Download previous version bundle
-tar -xzf radiusforge-1.1.0-full.tar.gz
+# List archived versions
+ls release/archive-v*/
 
-# Stop services
-systemctl stop radiusforge-api radiusforge-ui
+# Extract archived bundle
+tar -xzf release/archive-v1.3.0/RADIUSFORGE-PRODUCTION-V1.3.0-COMPLETE.tar.gz
 
-# Replace files
-rm -rf /opt/radiusforge
-mv radiusforge-1.1.0 /opt/radiusforge
-
-# Start services
-systemctl start radiusforge-api radiusforge-ui
+# Deploy archived version
+cd RADIUSFORGE-PRODUCTION-V1.3.0-COMPLETE
+./scripts/install-upgrade.sh install traditional --force
 ```
 
 ## Manifest Structure
