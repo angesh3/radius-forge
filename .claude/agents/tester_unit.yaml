@@ -44,10 +44,10 @@ testing_focus:
   - Dependency mocking
 
 coverage_requirements:
-  - Line coverage: >= 80%
-  - Branch coverage: >= 75%
-  - Function coverage: >= 90%
-  - Critical path coverage: 100%
+  - "Line coverage: >= 80%"
+  - "Branch coverage: >= 75%"
+  - "Function coverage: >= 90%"
+  - "Critical path coverage: 100%"
 
 output_template: |
   ### Summary
