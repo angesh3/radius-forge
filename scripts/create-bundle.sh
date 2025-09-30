@@ -338,7 +338,70 @@ cp requirements.txt ${BUILD_DIR}/${FULL_BUNDLE}/
 cp VERSION ${BUILD_DIR}/${FULL_BUNDLE}/
 cp README.md ${BUILD_DIR}/${FULL_BUNDLE}/
 cp LICENSE ${BUILD_DIR}/${FULL_BUNDLE}/ 2>/dev/null || echo "  No LICENSE file found"
-cp Dockerfile ${BUILD_DIR}/${FULL_BUNDLE}/container/
+cat > ${BUILD_DIR}/${FULL_BUNDLE}/container/Dockerfile << 'BUNDLE_DOCKERFILE'
+# RadiusForge Bundle Docker Build
+# Version: 1.4.0
+# Supports all RadiusForge services in a single container
+
+FROM python:3.9-slim
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    netcat-traditional \
+    nginx \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set working directory
+WORKDIR /opt/radiusforge
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY src/ ./src/
+COPY scripts/ ./scripts/
+COPY VERSION .
+COPY README.md ./CLAUDE.md
+
+COPY ui-build/ ./ui-build/
+
+# Create necessary directories
+RUN mkdir -p /opt/radiusforge/logs \
+    /opt/radiusforge/data \
+    /opt/radiusforge/config \
+    /var/log/supervisor \
+    /etc/nginx/sites-available \
+    /etc/nginx/sites-enabled
+
+# Copy configuration files
+COPY container/docker/nginx-radiusforge.conf /etc/nginx/sites-available/radiusforge
+COPY container/docker/supervisord.conf /etc/supervisor/conf.d/radiusforge.conf
+COPY container/docker/docker-entrypoint.sh /opt/radiusforge/docker-entrypoint.sh
+COPY container/docker/health_server.py /opt/radiusforge/docker/health_server.py
+COPY container/docker/metrics_server.py /opt/radiusforge/docker/metrics_server.py
+
+RUN ln -s /etc/nginx/sites-available/radiusforge /etc/nginx/sites-enabled/ && \
+    rm -f /etc/nginx/sites-enabled/default && \
+    chmod +x /opt/radiusforge/docker-entrypoint.sh && \
+    chmod +x /opt/radiusforge/docker/health_server.py && \
+    chmod +x /opt/radiusforge/docker/metrics_server.py
+
+EXPOSE 8910 8911 8912 8913 8914 8915 8916 8917 8918 8919 8920
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
+    CMD curl -f http://localhost:8917/health || exit 1
+
+LABEL maintainer="RadiusForge Team" \
+      version="1.4.0" \
+      description="RadiusForge AAA Traffic Load Testing Platform"
+
+# Volume for persistent data and configuration
+VOLUME ["/opt/radiusforge/data", "/opt/radiusforge/logs", "/opt/radiusforge/config"]
+
+# Start services
+ENTRYPOINT ["/opt/radiusforge/docker-entrypoint.sh"]
+BUNDLE_DOCKERFILE
 cp docker-compose-allinone.yml ${BUILD_DIR}/${FULL_BUNDLE}/container/docker-compose.yml
 cp nginx.conf ${BUILD_DIR}/${FULL_BUNDLE}/
 
