@@ -19,6 +19,7 @@ dist/
 build/
 out/
 coverage/
+wheels/
 
 # Environment files (never commit secrets!)
 .env
