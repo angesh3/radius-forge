@@ -309,6 +309,7 @@ validate_bundle() {
 echo "Step 1: Creating directories..."
 mkdir -p ${BUILD_DIR}/${FULL_BUNDLE}/{src,ui-build,scripts,docs,wheels,config,container}
 mkdir -p ${BUILD_DIR}/${FULL_BUNDLE}/scripts/startup
+mkdir -p ${BUILD_DIR}/${FULL_BUNDLE}/container/docker
 mkdir -p ${BUILD_DIR}/${CONTAINER_BUNDLE}
 mkdir -p ${RELEASE_DIR}
 echo -e "${GREEN}✓ Directories created${NC}"
@@ -735,8 +736,7 @@ deploy_container() {
     check_docker
     
     echo "Building Docker image..."
-    cd container
-    docker build -t radiusforge:${VERSION} .
+    docker build -f container/Dockerfile -t radiusforge:${VERSION} .
     
     echo "Starting container..."
     docker run -d \
