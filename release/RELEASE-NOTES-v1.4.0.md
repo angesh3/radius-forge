@@ -2,7 +2,7 @@
 
 ## Release Information
 - **Version**: 1.4.0
-- **Build Date**: 20250929_032438
+- **Build Date**: 20250930_183744
 - **Port Range**: 8910-8920 (11 dedicated services)
 - **Deployment Options**: Traditional + Container
 - **OS Support**: macOS, RHEL 8.8+, CentOS 8+, Ubuntu 20.04+, Docker
@@ -12,7 +12,7 @@
 ### Complete Bundle (Traditional + Container)
 - **File**: RADIUSFORGE-PRODUCTION-V1.4.0-COMPLETE.tar.gz
 - **Size**: 14M
-- **SHA256**: 859dca8abeedab346ad61c12eb610309e6483af205de6668c506093ead0da999
+- **SHA256**: 3b202c4b1d66d1fb7fafee09062e8d57acc03f0dc1d7ac7a0fc2b540acb3d6aa
 - **Use for**: Any deployment method on any supported OS
 
 ## What's New in v1.4.0

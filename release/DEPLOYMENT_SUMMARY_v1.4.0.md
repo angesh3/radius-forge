@@ -80,8 +80,8 @@ All services use ports **8910-8920**:
 
 ---
 Version: 1.4.0
-Build: 20250929_032438
+Build: 20250930_183744
 Bundle: RADIUSFORGE-PRODUCTION-V1.4.0-COMPLETE.tar.gz
 Size: 14M
-SHA256: 859dca8abeedab346ad61c12eb610309e6483af205de6668c506093ead0da999
+SHA256: 3b202c4b1d66d1fb7fafee09062e8d57acc03f0dc1d7ac7a0fc2b540acb3d6aa
 Validation: release/validation-1.4.0.log
