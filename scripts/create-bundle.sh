@@ -6,7 +6,9 @@
 
 set -e
 
-# Configuration
+# Configuration - Auto-increment version using version manager
+echo "Auto-incrementing version..."
+python3 ops/version_manager.py --bump patch
 VERSION=$(cat VERSION 2>/dev/null || echo "1.4.0")
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BUILD_DIR="build"
@@ -338,9 +340,9 @@ cp requirements.txt ${BUILD_DIR}/${FULL_BUNDLE}/
 cp VERSION ${BUILD_DIR}/${FULL_BUNDLE}/
 cp README.md ${BUILD_DIR}/${FULL_BUNDLE}/
 cp LICENSE ${BUILD_DIR}/${FULL_BUNDLE}/ 2>/dev/null || echo "  No LICENSE file found"
-cat > ${BUILD_DIR}/${FULL_BUNDLE}/container/Dockerfile << 'BUNDLE_DOCKERFILE'
+cat > ${BUILD_DIR}/${FULL_BUNDLE}/container/Dockerfile << BUNDLE_DOCKERFILE
 # RadiusForge Bundle Docker Build
-# Version: 1.4.0
+# Version: ${VERSION}
 # Supports all RadiusForge services in a single container
 
 FROM python:3.9-slim
@@ -393,7 +395,7 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8917/health || exit 1
 
 LABEL maintainer="RadiusForge Team" \
-      version="1.4.0" \
+      version="${VERSION}" \
       description="RadiusForge AAA Traffic Load Testing Platform"
 
 # Volume for persistent data and configuration
