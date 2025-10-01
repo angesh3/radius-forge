@@ -89,7 +89,7 @@ def rate_limit(client_id: str, limit: int = 10, window: int = 60):
 
 def validate_port_range(port: int) -> bool:
     """Validate port is in allowed range"""
-    return 8910 <= port <= 8920
+    return 8910 <= port <= 8926
 
 
 def sanitize_input(value: str, max_length: int = 255) -> str:
@@ -208,9 +208,15 @@ async def get_port_configuration():
             "health_check": {"port": 8917, "status": "available", "description": "Health check API"},
             "admin_api": {"port": 8918, "status": "available", "description": "Administrative API"},
             "backup_service": {"port": 8919, "status": "available", "description": "Backup service"},
-            "reserved": {"port": 8920, "status": "reserved", "description": "Reserved for future use"},
+            "reserved_1": {"port": 8920, "status": "reserved", "description": "Reserved for future use"},
+            "reserved_2": {"port": 8921, "status": "reserved", "description": "Reserved for future use"},
+            "reserved_3": {"port": 8922, "status": "reserved", "description": "Reserved for future use"},
+            "reserved_4": {"port": 8923, "status": "reserved", "description": "Reserved for future use"},
+            "reserved_5": {"port": 8924, "status": "reserved", "description": "Reserved for future use"},
+            "reserved_6": {"port": 8925, "status": "reserved", "description": "Reserved for future use"},
+            "reserved_7": {"port": 8926, "status": "reserved", "description": "Reserved for future use"},
         },
-        "range": {"start": 8910, "end": 8920, "total": 11},
+        "range": {"start": 8910, "end": 8926, "total": 17},
     }
 
 

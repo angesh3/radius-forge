@@ -36,7 +36,7 @@ echo "========================================="
 echo "RadiusForge Bundle Creation v${VERSION}"
 echo "========================================="
 echo "Timestamp: ${TIMESTAMP}"
-echo "Port Range: 8910-8920"
+echo "Port Range: 8910-8926"
 echo "Deployment: Traditional + Container"
 echo "OS Support: macOS, RHEL/CentOS 8.8+, Docker"
 echo ""
@@ -390,7 +390,7 @@ RUN ln -s /etc/nginx/sites-available/radiusforge /etc/nginx/sites-enabled/ && \
     chmod +x /opt/radiusforge/docker/health_server.py && \
     chmod +x /opt/radiusforge/docker/metrics_server.py
 
-EXPOSE 8910 8911 8912 8913 8914 8915 8916 8917 8918 8919 8920
+EXPOSE 8910 8911 8912 8913 8914 8915 8916 8917 8918 8919 8920 8921 8922 8923 8924 8925 8926
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \
     CMD curl -f http://localhost:8917/health || exit 1
@@ -676,7 +676,7 @@ install_radiusforge() {
     fi
     echo "3. Access: http://localhost:8911"
     echo ""
-    echo "Port Range: 8910-8920"
+    echo "Port Range: 8910-8926"
     echo "Installation: $INSTALL_DIR"
     echo ""
 }
@@ -741,7 +741,7 @@ deploy_container() {
     echo "Starting container..."
     docker run -d \
         --name radiusforge \
-        -p 8910-8920:8910-8920 \
+        -p 8910-8926:8910-8926 \
         --restart unless-stopped \
         radiusforge:${VERSION}
     
@@ -774,7 +774,7 @@ deploy_container() {
     echo "  docker start radiusforge    # Start container"
     echo "  docker restart radiusforge  # Restart container"
     echo ""
-    echo "Port Range: 8910-8920"
+    echo "Port Range: 8910-8926"
     echo "Container: radiusforge:${VERSION}"
     echo ""
 }
@@ -792,7 +792,7 @@ cat > ${BUILD_DIR}/${FULL_BUNDLE}/MANIFEST.json << EOF
   "version": "${VERSION}",
   "build_timestamp": "${TIMESTAMP}",
   "bundle_type": "complete",
-  "port_range": "8910-8920",
+  "port_range": "8910-8926",
   "deployment_options": ["traditional", "container"],
   "supported_os": [
     "macOS 10.15+",
@@ -860,7 +860,7 @@ cat > ${RELEASE_DIR}/RELEASE-NOTES-v${VERSION}.md << EOF
 ## Release Information
 - **Version**: ${VERSION}
 - **Build Date**: ${TIMESTAMP}
-- **Port Range**: 8910-8920 (11 dedicated services)
+- **Port Range**: 8910-8926 (17 dedicated services)
 - **Deployment Options**: Traditional + Container
 - **OS Support**: macOS, RHEL 8.8+, CentOS 8+, Ubuntu 20.04+, Docker
 
@@ -1028,7 +1028,7 @@ cd ${FULL_BUNDLE}
 
 ## 📊 Service Ports
 
-All services use ports **8910-8920**:
+All services use ports **8910-8926**:
 - API Server: 8910
 - Web UI: 8911
 - WebSocket: 8912

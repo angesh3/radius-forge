@@ -65,7 +65,7 @@ RUN ln -s /etc/nginx/sites-available/radiusforge /etc/nginx/sites-enabled/ && \
     chmod +x /opt/radiusforge/docker/metrics_server.py
 
 # Expose all RadiusForge ports
-EXPOSE 8910 8911 8912 8913 8914 8915 8916 8917 8918 8919 8920
+EXPOSE 8910 8911 8912 8913 8914 8915 8916 8917 8918 8919 8920 8921 8922 8923 8924 8925 8926
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=40s --retries=3 \

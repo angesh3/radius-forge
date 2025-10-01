@@ -13,7 +13,7 @@ class HealthHandler(http.server.SimpleHTTPRequestHandler):
                 'status': 'healthy',
                 'version': '1.4.0',
                 'container': 'docker',
-                'ports': '8910-8920'
+                'ports': '8910-8926'
             }
             self.wfile.write(json.dumps(status).encode())
         else:

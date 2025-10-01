@@ -12,7 +12,7 @@ RadiusForge is a scalable, enterprise-grade platform for simulating and analyzin
 - **Threat Simulation**: Adversarial traffic patterns for resilience testing
 - **Real-time Analytics**: Live KPIs with WebSocket telemetry
 - **Multi-Protocol Support**: RADIUS (EAP-TLS, PEAP, MAB), TACACS+, Syslog
-- **Enterprise Ready**: Production ports (8910-8920), true airgap deployment
+- **Enterprise Ready**: Production ports (8910-8926), true airgap deployment
 
 ### UI Pages
 1. **Scale Test** - RPS planner with presets and live metrics
@@ -222,7 +222,7 @@ cd RADIUSFORGE-PRODUCTION-V*
 
 ### Common Issues
 
-1. **Port conflicts**: Ensure ports 8910-8920 are available
+1. **Port conflicts**: Ensure ports 8910-8926 are available
 2. **Database connection**: Check PostgreSQL is running and credentials are correct
 3. **RADIUS timeouts**: Verify network connectivity and secrets
 4. **WebSocket disconnects**: Check firewall/proxy WebSocket support

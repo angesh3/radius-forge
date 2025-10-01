@@ -26,7 +26,7 @@ invariants:
     - "nginx (8911) → api (8910) routing stable (no 502 errors)"
     - "WebSocket telemetry stable (no 1006 errors)"
     - "Idle metrics clamp to zero"
-    - "Port range 8910-8920 for all services"
+    - "Port range 8910-8926 for all services"
 
   data_persistence:
     - "Durable volumes for all persistent data"
@@ -103,6 +103,12 @@ deployment:
     admin_api: 8918
     backup_service: 8919
     reserved: 8920
+    pxgrid_service: 8921
+    connectivity_probe: 8922
+    load_balancer: 8923
+    monitoring: 8924
+    analytics: 8925
+    future_expansion: 8926
 
   services:
     - "All services containerized"
