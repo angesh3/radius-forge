@@ -74,7 +74,7 @@ class pxGridMetrics:
         return sum(self.latencies) / len(self.latencies)
 
 
-class pxGridClient:
+class PxGridClient:
     """pxGrid client for Cisco ISE integration"""
 
     def __init__(

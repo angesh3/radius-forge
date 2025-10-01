@@ -75,55 +75,53 @@ const PerformanceTest = () => {
     setTestResults([]);
     setCurrentTest({ phase: 'Starting', scalePoint: selectedScalePoints[0] });
     
-    // TODO: Call API to start performance test
-    // Simulate test execution
-    simulateTestExecution();
+    // Execute real performance test
+    executeRealPerformanceTest();
   };
 
-  const simulateTestExecution = () => {
-    // This would be replaced with actual API calls
-    let testIndex = 0;
-    const interval = setInterval(() => {
-      if (testIndex < selectedScalePoints.length) {
-        const scalePoint = selectedScalePoints[testIndex];
-        setCurrentTest({ 
-          phase: 'Running', 
-          scalePoint, 
-          trial: 1,
-          totalTrials: testConfig.trialCount 
+  const executeRealPerformanceTest = async () => {
+    for (let testIndex = 0; testIndex < selectedScalePoints.length; testIndex++) {
+      const scalePoint = selectedScalePoints[testIndex];
+      setCurrentTest({ 
+        phase: 'Running', 
+        scalePoint, 
+        trial: 1,
+        totalTrials: testConfig.trialCount 
+      });
+      
+      try {
+        const response = await fetch('/api/performance/test', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scalePoint,
+            sloConfig,
+            workloadMix,
+            testConfig
+          })
         });
         
-        // Simulate test completion after 3 seconds
-        setTimeout(() => {
-          const result = generateMockResult(scalePoint);
-          setTestResults(prev => [...prev, result]);
-          testIndex++;
-          
-          if (testIndex >= selectedScalePoints.length) {
-            clearInterval(interval);
-            setIsRunning(false);
-            setCurrentTest(null);
-          }
-        }, 3000);
+        const result = await response.json();
+        setTestResults(prev => [...prev, result]);
+      } catch (error) {
+        console.error('Performance test failed:', error);
+        setTestResults(prev => [...prev, {
+          scalePoint,
+          authP95: 0,
+          authP99: 0,
+          errorRate: 100,
+          coaP95: 0,
+          passed: false,
+          bottleneck: 'API Error',
+          timestamp: new Date().toISOString()
+        }]);
       }
-    }, 4000);
+    }
+    
+    setIsRunning(false);
+    setCurrentTest(null);
   };
 
-  const generateMockResult = (scalePoint) => {
-    const baseLatency = Math.log(scalePoint) * 10;
-    const passed = scalePoint <= 10000; // Simulate failures at higher scales
-    
-    return {
-      scalePoint,
-      authP95: Math.round(baseLatency + Math.random() * 50),
-      authP99: Math.round(baseLatency * 1.5 + Math.random() * 100),
-      errorRate: Math.random() * (scalePoint > 10000 ? 2 : 0.5),
-      coaP95: Math.round(baseLatency * 10 + Math.random() * 500),
-      passed,
-      bottleneck: scalePoint > 10000 ? 'Server CPU saturation' : null,
-      timestamp: new Date().toISOString()
-    };
-  };
 
   const handleExportReport = () => {
     // TODO: Generate and export PDF/HTML report

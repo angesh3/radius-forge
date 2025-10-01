@@ -52,45 +52,40 @@ const { spacing, colors } = designSystem;
 const DashboardReorganized = () => {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [systemStats, setSystemStats] = useState({
+    currentRPS: 0,
+    targetRPS: 0,
+    totalTests: 0,
+    activeConnections: 0,
+    uptime: '0m',
+    cpuUsage: 0,
+    memoryUsage: 0,
+    diskUsage: 0,
+    networkThroughput: '0 Gbps'
+  });
   
-  // Auto-refresh every 30 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLastUpdated(new Date());
-    }, 30000);
-    
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('/api/dashboard/stats');
+        const data = await response.json();
+        setSystemStats(data.systemStats || {});
+        setLastUpdated(new Date());
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      }
+    };
+
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // Mock data for scale test points
-  const scaleTestData = [
-    { rps: 150, success: 100, latency: 8 },
-    { rps: 500, success: 99.8, latency: 12 },
-    { rps: 1000, success: 99.5, latency: 18 },
-    { rps: 2500, success: 99.2, latency: 25 },
-    { rps: 5000, success: 98.8, latency: 35 },
-    { rps: 10000, success: 97.5, latency: 55 },
-    { rps: 50000, success: 95.2, latency: 120 },
-  ];
+  const [scaleTestData, setScaleTestData] = useState([]);
 
-  // Incremental RPS performance data
-  const incrementalRPSData = [
-    { time: '00:00', actual: 0, target: 0 },
-    { time: '00:30', actual: 150, target: 150 },
-    { time: '01:00', actual: 480, target: 500 },
-    { time: '01:30', actual: 980, target: 1000 },
-    { time: '02:00', actual: 2450, target: 2500 },
-    { time: '02:30', actual: 4920, target: 5000 },
-    { time: '03:00', actual: 5247, target: 5000 },
-  ];
+  const [incrementalRPSData, setIncrementalRPSData] = useState([]);
 
-  // Authentication methods distribution
-  const authMethodsData = [
-    { name: 'EAP-TLS', value: 45, color: colors.primary[700] },
-    { name: 'PEAP', value: 30, color: colors.info.dark },
-    { name: 'MAB', value: 15, color: colors.success.main },
-    { name: 'PAP/CHAP', value: 10, color: colors.warning.main },
-  ];
+  const [authMethodsData, setAuthMethodsData] = useState([]);
 
   const MetricCard = ({ icon: Icon, title, value, subtitle, trend, color = 'primary', size = 'medium' }) => (
     <Card sx={{ height: '100%', position: 'relative', overflow: 'visible' }}>
@@ -228,8 +223,8 @@ const DashboardReorganized = () => {
           <MetricCard
             icon={SpeedIcon}
             title="Current RPS"
-            value="5,247"
-            subtitle="Target: 5,000"
+            value={systemStats.currentRPS || 0}
+            subtitle={`Target: ${systemStats.targetRPS || 0}`}
             trend={5.2}
             color="primary"
           />
@@ -238,7 +233,7 @@ const DashboardReorganized = () => {
           <MetricCard
             icon={NetworkIcon}
             title="Connections"
-            value="1,284"
+            value={systemStats.activeConnections || 0}
             subtitle="Active sessions"
             trend={234}
             color="info"
@@ -248,7 +243,7 @@ const DashboardReorganized = () => {
           <MetricCard
             icon={DataIcon}
             title="Tests"
-            value="42"
+            value={systemStats.totalTests || 0}
             subtitle="Running"
             color="success"
           />

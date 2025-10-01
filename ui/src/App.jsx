@@ -5,7 +5,7 @@ import { CssBaseline } from '@mui/material';
 import enhancedTheme from './theme/enhancedTheme';
 import GlobalStylesEnhanced from './components/GlobalStylesEnhanced';
 import Layout from './components/Layout';
-import DashboardOptimized from './pages/DashboardOptimized';
+import Dashboard from './pages/Dashboard';
 import ScaleTest from './pages/ScaleTest';
 import PerformanceTestEnhanced from './pages/PerformanceTestEnhanced';
 import ThreatGeneratorEnhanced from './pages/ThreatGeneratorEnhanced';
@@ -26,7 +26,7 @@ function App() {
       <Router>
         <Layout>
           <Routes>
-            <Route path="/" element={<DashboardOptimized />} />
+            <Route path="/" element={<Dashboard />} />
             <Route path="/live-logs" element={<LiveLogs />} />
             <Route path="/configuration" element={<Configuration />} />
             <Route path="/quick-test" element={<QuickTest />} />

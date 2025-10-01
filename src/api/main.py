@@ -119,23 +119,59 @@ async def websocket_telemetry(websocket: WebSocket):
 async def telemetry_broadcaster():
     """Background task to broadcast telemetry to connected clients"""
     while True:
-        # Generate mock telemetry data
-        telemetry = {
-            "type": "telemetry",
-            "timestamp": datetime.now().isoformat(),
-            "metrics": {
-                "current_rps": 5000,
-                "target_rps": 5000,
-                "delivered_percent": 100.0,
-                "active_sockets": 100,
-                "p50_latency": 45,
-                "p95_latency": 120,
-                "p99_latency": 250,
-                "success_rate": 99.5,
-                "error_rate": 0.5,
-                "timeout_rate": 0.1,
-            },
-        }
+        # Generate real telemetry data from database
+        from .database import get_db
+        from .models import TestMetric
+        from sqlalchemy import select
+        
+        try:
+            async with get_db() as db:
+                recent_metrics = await db.execute(
+                    select(TestMetric).order_by(TestMetric.timestamp.desc()).limit(1)
+                )
+                latest_metric = recent_metrics.scalar_one_or_none()
+                
+                if latest_metric:
+                    telemetry = {
+                        "type": "telemetry",
+                        "timestamp": latest_metric.timestamp.isoformat(),
+                        "rps": latest_metric.requests_per_second,
+                        "latency_p50": latest_metric.latency_p50,
+                        "latency_p95": latest_metric.latency_p95,
+                        "latency_p99": latest_metric.latency_p99,
+                        "error_rate": latest_metric.error_rate,
+                        "active_connections": latest_metric.active_connections,
+                        "cpu_usage": latest_metric.cpu_usage,
+                        "memory_usage": latest_metric.memory_usage
+                    }
+                else:
+                    telemetry = {
+                        "type": "telemetry",
+                        "timestamp": datetime.now().isoformat(),
+                        "rps": 0,
+                        "latency_p50": 0,
+                        "latency_p95": 0,
+                        "latency_p99": 0,
+                        "error_rate": 0,
+                        "active_connections": 0,
+                        "cpu_usage": 0,
+                        "memory_usage": 0
+                    }
+        except Exception as e:
+            import logging
+            logging.error(f"Error fetching telemetry data: {e}")
+            telemetry = {
+                "type": "telemetry",
+                "timestamp": datetime.now().isoformat(),
+                "rps": 0,
+                "latency_p50": 0,
+                "latency_p95": 0,
+                "latency_p99": 0,
+                "error_rate": 0,
+                "active_connections": 0,
+                "cpu_usage": 0,
+                "memory_usage": 0
+            }
 
         # Broadcast to all connected clients
         await ws_manager.broadcast(telemetry)

@@ -199,7 +199,7 @@ class TACACSMetrics:
         return sum(self.latencies) / len(self.latencies)
 
 
-class TACACSClient:
+class TacacsClient:
     """TACACS+ client for authentication, authorization, and accounting"""
 
     def __init__(self, server_host: str, server_port: int = 49, secret: str = "testing123", timeout: float = 5.0):

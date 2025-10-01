@@ -63,52 +63,42 @@ const DashboardOptimized = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [systemStats, setSystemStats] = useState({
+    currentRPS: 0,
+    targetRPS: 0,
+    totalTests: 0,
+    activeConnections: 0,
+    uptime: '0m',
+    cpuUsage: 0,
+    memoryUsage: 0,
+    diskUsage: 0,
+    networkThroughput: '0 Gbps'
+  });
   
-  // Auto-refresh every 30 seconds
   useEffect(() => {
-    const interval = setInterval(() => {
-      setLastUpdated(new Date());
-    }, 30000);
-    
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('/api/dashboard/stats');
+        const data = await response.json();
+        setSystemStats(data.systemStats || {});
+        setLastUpdated(new Date());
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      }
+    };
+
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 5000);
     return () => clearInterval(interval);
   }, []);
 
-  // Mock data for scale test points
-  const scaleTestData = [
-    { rps: 150, success: 100, latency: 8, throughput: 1.2 },
-    { rps: 500, success: 99.8, latency: 12, throughput: 4.1 },
-    { rps: 1000, success: 99.5, latency: 18, throughput: 8.2 },
-    { rps: 2500, success: 99.2, latency: 25, throughput: 20.5 },
-    { rps: 5000, success: 98.8, latency: 35, throughput: 41.0 },
-    { rps: 10000, success: 97.5, latency: 55, throughput: 82.0 },
-    { rps: 50000, success: 95.2, latency: 120, throughput: 410.0 },
-  ];
+  const [scaleTestData, setScaleTestData] = useState([]);
 
-  // Incremental RPS performance data
-  const incrementalRPSData = [
-    { time: '00:00', actual: 0, target: 0, errors: 0 },
-    { time: '00:30', actual: 150, target: 150, errors: 0 },
-    { time: '01:00', actual: 480, target: 500, errors: 1 },
-    { time: '01:30', actual: 980, target: 1000, errors: 2 },
-    { time: '02:00', actual: 2450, target: 2500, errors: 5 },
-    { time: '02:30', actual: 4920, target: 5000, errors: 8 },
-    { time: '03:00', actual: 5247, target: 5000, errors: 10 },
-  ];
+  const [incrementalRPSData, setIncrementalRPSData] = useState([]);
 
-  // Authentication methods distribution
-  const authMethodsData = [
-    { name: 'EAP-TLS', value: 45, sessions: 125420 },
-    { name: 'PEAP', value: 30, sessions: 83613 },
-    { name: 'MAB', value: 15, sessions: 41807 },
-    { name: 'PAP/CHAP', value: 10, sessions: 27871 },
-  ];
+  const [authMethodsData, setAuthMethodsData] = useState([]);
 
-  const systemResources = [
-    { name: 'CPU', value: 42, status: 'normal', trend: 'stable' },
-    { name: 'Memory', value: 68, status: 'warning', trend: 'increasing' },
-    { name: 'Disk I/O', value: 35, status: 'normal', trend: 'stable' },
-    { name: 'Network', value: 78, status: 'high', trend: 'increasing' },
-  ];
+  const [systemResources, setSystemResources] = useState([]);
 
   const CompactMetricCard = ({ icon: Icon, title, value, subtitle, trend, color = 'primary' }) => (
     <Card sx={{ height: '100%', position: 'relative' }}>
@@ -235,8 +225,8 @@ const DashboardOptimized = () => {
             <CompactMetricCard
               icon={SpeedIcon}
               title="RPS"
-              value="5,247"
-              subtitle="Target: 5,000"
+              value={systemStats.currentRPS || 0}
+              subtitle={`Target: ${systemStats.targetRPS || 0}`}
               trend={5.2}
               color="primary"
             />
@@ -245,7 +235,7 @@ const DashboardOptimized = () => {
             <CompactMetricCard
               icon={NetworkIcon}
               title="Connections"
-              value="1,284"
+              value={systemStats.activeConnections || 0}
               subtitle="Active"
               trend={18}
               color="success"
@@ -255,7 +245,7 @@ const DashboardOptimized = () => {
             <CompactMetricCard
               icon={DataIcon}
               title="Tests"
-              value="42"
+              value={systemStats.totalTests || 0}
               subtitle="Running"
               trend={0}
               color="info"
@@ -265,7 +255,7 @@ const DashboardOptimized = () => {
             <CompactMetricCard
               icon={ErrorIcon}
               title="Errors"
-              value="12"
+              value={0}
               subtitle="Last hour"
               trend={-25}
               color="error"
@@ -275,7 +265,7 @@ const DashboardOptimized = () => {
             <CompactMetricCard
               icon={StorageIcon}
               title="Throughput"
-              value="4.8 Gbps"
+              value={systemStats.networkThroughput || "0 Gbps"}
               subtitle="Network"
               trend={12}
               color="warning"

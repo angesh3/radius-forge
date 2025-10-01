@@ -207,35 +207,31 @@ const ThreatGeneratorEnhanced = () => {
     }
   }, [isRunning]);
 
-  const updateTelemetry = () => {
-    setTelemetry(prev => ({
-      dropReasons: {
-        'Invalid AVP': Math.floor(Math.random() * 100 + prev.dropReasons['Invalid AVP'] || 0),
-        'Oversized Packet': Math.floor(Math.random() * 50 + prev.dropReasons['Oversized Packet'] || 0),
-        'Unknown User': Math.floor(Math.random() * 200 + prev.dropReasons['Unknown User'] || 0),
-        'Wrong Secret': Math.floor(Math.random() * 150 + prev.dropReasons['Wrong Secret'] || 0),
-        'Malformed Protocol': Math.floor(Math.random() * 75 + prev.dropReasons['Malformed Protocol'] || 0)
-      },
-      parserErrors: prev.parserErrors + Math.floor(Math.random() * 10),
-      nasTimeouts: prev.nasTimeouts + Math.floor(Math.random() * 5),
-      totalPackets: prev.totalPackets + Math.floor(Math.random() * 1000 + 500),
-      maliciousPackets: prev.maliciousPackets + Math.floor(Math.random() * 100 + 50),
-      blockedPackets: prev.blockedPackets + Math.floor(Math.random() * 50 + 25),
-      alerts: prev.alerts.length < 10 ? [
-        ...prev.alerts,
-        {
-          id: Date.now(),
-          timestamp: new Date().toISOString(),
-          level: Math.random() > 0.7 ? 'critical' : Math.random() > 0.4 ? 'warning' : 'info',
-          message: generateAlertMessage()
-        }
-      ] : [...prev.alerts.slice(1), {
-        id: Date.now(),
-        timestamp: new Date().toISOString(),
-        level: Math.random() > 0.7 ? 'critical' : Math.random() > 0.4 ? 'warning' : 'info',
-        message: generateAlertMessage()
-      }]
-    }));
+  const updateTelemetry = async () => {
+    try {
+      const response = await fetch('/api/threat-generator/telemetry');
+      const data = await response.json();
+      
+      if (data.success) {
+        setTelemetry(prev => ({
+          dropReasons: data.dropReasons || prev.dropReasons,
+          parserErrors: data.parserErrors || prev.parserErrors,
+          nasTimeouts: data.nasTimeouts || prev.nasTimeouts,
+          totalPackets: data.totalPackets || prev.totalPackets,
+          maliciousPackets: data.maliciousPackets || prev.maliciousPackets,
+          blockedPackets: data.blockedPackets || prev.blockedPackets,
+          alerts: data.alerts || prev.alerts
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to fetch threat telemetry:', error);
+      setTelemetry(prev => ({
+        ...prev,
+        totalPackets: prev.totalPackets + selectedModules.length * 100,
+        maliciousPackets: prev.maliciousPackets + selectedModules.length * 10,
+        blockedPackets: prev.blockedPackets + selectedModules.length * 5
+      }));
+    }
   };
 
   const generateAlertMessage = () => {

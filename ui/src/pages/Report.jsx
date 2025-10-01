@@ -26,69 +26,31 @@ const Report = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedReports, setGeneratedReports] = useState([]);
 
-  // Mock data for available runs
   useEffect(() => {
-    setAvailableRuns([
-      {
-        id: 'run-001',
-        name: 'Scale Test 5K RPS',
-        timestamp: '2024-08-14T10:30:00Z',
-        duration: '00:05:30',
-        target: 'Asset Manager',
-        rps: 5000,
-        status: 'completed',
-        tags: ['nightly', '5k-rps']
-      },
-      {
-        id: 'run-002',
-        name: 'Performance Benchmark',
-        timestamp: '2024-08-14T09:15:00Z',
-        duration: '00:12:45',
-        target: 'Cisco ISE',
-        rps: 10000,
-        status: 'completed',
-        tags: ['benchmark', 'slo-validation']
-      },
-      {
-        id: 'run-003',
-        name: 'EAP-TLS Load Test',
-        timestamp: '2024-08-14T08:00:00Z',
-        duration: '00:08:20',
-        target: 'Asset Manager',
-        rps: 2500,
-        status: 'completed',
-        tags: ['eap-tls', 'tls-test']
-      },
-      {
-        id: 'run-004',
-        name: 'Threat Generation Test',
-        timestamp: '2024-08-13T16:45:00Z',
-        duration: '00:03:15',
-        target: 'Lab Environment',
-        rps: 1000,
-        status: 'completed',
-        tags: ['threat-gen', 'security-test']
+    const fetchAvailableRuns = async () => {
+      try {
+        const response = await fetch('/api/runs');
+        const data = await response.json();
+        setAvailableRuns(data.runs || []);
+      } catch (error) {
+        console.error('Failed to fetch available runs:', error);
+        setAvailableRuns([]);
       }
-    ]);
+    };
 
-    setGeneratedReports([
-      {
-        id: 'report-001',
-        runId: 'run-001',
-        format: 'PDF',
-        generatedAt: '2024-08-14T10:35:00Z',
-        fileSize: '2.4 MB',
-        downloadUrl: '/api/reports/report-001.pdf'
-      },
-      {
-        id: 'report-002',
-        runId: 'run-002',
-        format: 'HTML',
-        generatedAt: '2024-08-14T09:20:00Z',
-        fileSize: '1.8 MB',
-        downloadUrl: '/api/reports/report-002.html'
+    const fetchGeneratedReports = async () => {
+      try {
+        const response = await fetch('/api/reports');
+        const data = await response.json();
+        setGeneratedReports(data.reports || []);
+      } catch (error) {
+        console.error('Failed to fetch generated reports:', error);
+        setGeneratedReports([]);
       }
-    ]);
+    };
+
+    fetchAvailableRuns();
+    fetchGeneratedReports();
   }, []);
 
   const handleRunSelection = (runId) => {
@@ -131,7 +93,7 @@ const Report = () => {
         runId: selectedRuns.length === 1 ? selectedRuns[0] : 'multiple',
         format: reportConfig.format,
         generatedAt: new Date().toISOString(),
-        fileSize: `${(Math.random() * 5 + 1).toFixed(1)} MB`,
+        fileSize: "2.5 MB", // Real file size will be calculated by API
         downloadUrl: `/api/reports/report-${Date.now()}.${reportConfig.format.toLowerCase()}`
       };
       

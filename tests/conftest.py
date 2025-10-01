@@ -38,7 +38,7 @@ from api.database import Base, get_db
 from api.models import TestRun, TestStatus, TestType, TestMetric, NAD, Report
 from api.config import Settings
 from api.websocket_manager import WebSocketManager
-from api.generators.radius_generator import RADIUSGenerator, RADIUSPacket, RADIUSCode
+from api.generators.radius_generator import RadiusGenerator, RADIUSPacket, RADIUSCode
 
 
 # Test configuration
@@ -185,7 +185,7 @@ def mock_radius_server():
 @pytest.fixture
 def radius_generator(mock_radius_server):
     """RADIUS generator for testing"""
-    generator = RADIUSGenerator(
+    generator = RadiusGenerator(
         server_host=mock_radius_server.host,
         server_port=mock_radius_server.port,
         secret=mock_radius_server.secret

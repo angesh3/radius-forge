@@ -44,6 +44,9 @@ class NADType(str, Enum):
     WIRELESS_CONTROLLER = "wireless_controller"
     VPN_CONCENTRATOR = "vpn_concentrator"
     FIREWALL = "firewall"
+    RADIUS_SERVER = "radius_server"
+    TACACS_SERVER = "tacacs_server"
+    PXGRID_SERVER = "pxgrid_server"
     OTHER = "other"
 
 
@@ -136,7 +139,7 @@ class NAD(Base):
     description = Column(Text)
 
     # Device information
-    device_type = Column(SQLEnum(NADType), nullable=False, default=NADType.SWITCH)
+    device_type = Column(SQLEnum(NADType), nullable=False, default=NADType.RADIUS_SERVER)
     ip_address = Column(String(45), nullable=False)  # Support IPv6
     mac_address = Column(String(17), nullable=True)
     vendor = Column(String(100), nullable=True)

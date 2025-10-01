@@ -108,24 +108,6 @@ const PerformanceTestEnhanced = () => {
   }, [isRunning]);
 
   const generateLogEntry = () => {
-    const logTypes = [
-      { level: 'INFO', message: 'SLO validation in progress...' },
-      { level: 'INFO', message: `Testing scale point: ${selectedScalePoints[0]} RPS` },
-      { level: 'SUCCESS', message: 'Warmup period completed successfully' },
-      { level: 'WARNING', message: 'Latency approaching SLO threshold' },
-      { level: 'INFO', message: 'Collecting performance metrics...' },
-      { level: 'SUCCESS', message: 'Trial 1 completed successfully' },
-      { level: 'ERROR', message: 'Error rate exceeded SLO threshold at 50000 RPS' },
-      { level: 'INFO', message: 'Analyzing bottlenecks...' },
-      { level: 'WARNING', message: 'CPU utilization at 85% on target server' },
-      { level: 'SUCCESS', message: 'Benchmark suite completed' },
-    ];
-    
-    const randomLog = logTypes[Math.floor(Math.random() * logTypes.length)];
-    setLogs(prev => [...prev.slice(-49), {
-      timestamp: new Date().toISOString(),
-      ...randomLog
-    }]);
   };
 
   const handleSloSetChange = (sloSet) => {
@@ -181,8 +163,8 @@ const PerformanceTestEnhanced = () => {
           progress: (testIndex / selectedScalePoints.length) * 100
         });
         
-        setTimeout(() => {
-          const result = generateMockResult(scalePoint);
+        setTimeout(async () => {
+          const result = await generateRealResult(scalePoint);
           setTestResults(prev => [...prev, result]);
           testIndex++;
           
@@ -197,36 +179,47 @@ const PerformanceTestEnhanced = () => {
     }, 4000);
   };
 
-  const generateMockResult = (scalePoint) => {
-    const baseLatency = Math.log(scalePoint) * 10;
-    const authP95 = Math.round(baseLatency + Math.random() * 50);
-    const authP99 = Math.round(baseLatency * 1.5 + Math.random() * 100);
-    const errorRate = Math.random() * (scalePoint > 10000 ? 2 : 0.5);
-    const coaP95 = Math.round(baseLatency * 10 + Math.random() * 500);
-    
-    const slosPassed = {
-      authP95: authP95 <= sloConfig.authP95,
-      authP99: authP99 <= sloConfig.authP99,
-      errorRate: errorRate <= sloConfig.errorRate,
-      coaP95: coaP95 <= sloConfig.coaP95
-    };
-    
-    const passed = Object.values(slosPassed).every(p => p);
-    
-    return {
-      scalePoint,
-      authP95,
-      authP99,
-      errorRate,
-      coaP95,
-      slosPassed,
-      passed,
-      bottleneck: scalePoint > 10000 ? 'Server CPU saturation' : scalePoint > 5000 ? 'Network latency' : null,
-      timestamp: new Date().toISOString(),
-      cpuUsage: Math.min(95, 20 + (scalePoint / 1000)),
-      memoryUsage: Math.min(85, 30 + (scalePoint / 2000)),
-      networkUtilization: Math.min(90, 10 + (scalePoint / 1500))
-    };
+  const generateRealResult = async (scalePoint) => {
+    try {
+      const response = await fetch('/api/performance/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          scalePoint,
+          sloConfig,
+          workloadMix,
+          testConfig
+        })
+      });
+      
+      if (response.ok) {
+        return await response.json();
+      } else {
+        throw new Error('Performance test failed');
+      }
+    } catch (error) {
+      console.error('Error running performance test:', error);
+      return {
+        scalePoint,
+        authP95: 0,
+        authP99: 0,
+        errorRate: 100,
+        coaP95: 0,
+        slosPassed: {
+          authP95: false,
+          authP99: false,
+          errorRate: false,
+          coaP95: false
+        },
+        passed: false,
+        bottleneck: 'Test execution failed',
+        timestamp: new Date().toISOString(),
+        cpuUsage: 0,
+        memoryUsage: 0,
+        networkUtilization: 0,
+        error: error.message
+      };
+    }
   };
 
   const getWorkloadTotal = () => {

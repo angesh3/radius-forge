@@ -289,12 +289,8 @@ const TopologyInteractiveCorrected = () => {
             ...node,
             metrics: {
               ...node.metrics,
-              rps: node.metrics.rps ? 
-                Math.floor(node.metrics.rps * (0.9 + Math.random() * 0.2)) : 
-                node.metrics.rps,
-              cpu: node.metrics.cpu ? 
-                Math.min(95, Math.max(10, node.metrics.cpu + (Math.random() - 0.5) * 10)) : 
-                node.metrics.cpu
+              rps: node.metrics.rps,
+              cpu: node.metrics.cpu
             }
           }))
         }));
@@ -553,9 +549,9 @@ const TopologyInteractiveCorrected = () => {
       enabled: true,
       required: false,
       metrics: {
-        rps: Math.floor(Math.random() * 1000),
-        latency: `${Math.floor(Math.random() * 50)}ms`,
-        cpu: Math.floor(Math.random() * 60)
+        rps: 0,
+        latency: '0ms',
+        cpu: 0
       }
     };
     

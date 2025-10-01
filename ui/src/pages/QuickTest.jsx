@@ -117,52 +117,66 @@ const QuickTest = () => {
     { value: 'downgrade-attack', label: 'Downgrade Attack', icon: <FailIcon /> },
   ];
 
-  const handleRunTest = () => {
+  const handleRunTest = async () => {
     setRunning(true);
     
-    // Simulate test execution
-    setTimeout(() => {
-      const result = {
+    try {
+      const response = await fetch('/api/test/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: testType,
+          target: target,
+          config: testConfig
+        })
+      });
+      
+      const result = await response.json();
+      setTestResults([result, ...testResults.slice(0, 9)]);
+    } catch (error) {
+      console.error('Test failed:', error);
+      const errorResult = {
         id: Date.now(),
         timestamp: new Date().toISOString(),
         type: testType,
         target: target,
-        status: Math.random() > 0.2 ? 'success' : 'failed',
-        latency: Math.floor(Math.random() * 50) + 10,
-        details: generateTestDetails(testType),
+        status: 'failed',
+        latency: 0,
+        details: { error: 'Test execution failed' },
       };
-      
-      setTestResults([result, ...testResults.slice(0, 9)]);
+      setTestResults([errorResult, ...testResults.slice(0, 9)]);
+    } finally {
       setRunning(false);
-    }, 2000);
+    }
   };
 
-  const handleRunConnectivityTest = () => {
+  const handleRunConnectivityTest = async () => {
     setRunning(true);
     
-    // Simulate connectivity test execution
-    setTimeout(() => {
-      const result = {
+    try {
+      const response = await fetch('/api/connectivity/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(connectivityConfig)
+      });
+      
+      const result = await response.json();
+      setTestResults([result, ...testResults.slice(0, 9)]);
+    } catch (error) {
+      console.error('Connectivity test failed:', error);
+      const errorResult = {
         id: Date.now(),
         timestamp: new Date().toISOString(),
         type: 'connectivity',
         target: `${connectivityConfig.host}:${connectivityConfig.port}`,
-        status: Math.random() > 0.3 ? 'success' : 'failed',
-        latency: Math.floor(Math.random() * 100) + 5,
-        details: {
-          protocol: connectivityConfig.protocol,
-          host: connectivityConfig.host,
-          port: connectivityConfig.port,
-          timeout: connectivityConfig.timeout,
-          retries: connectivityConfig.retries,
-          response_time: Math.floor(Math.random() * 100) + 5,
-          status: Math.random() > 0.3 ? 'Reachable' : 'Unreachable',
-        },
+        status: 'failed',
+        latency: 0,
+        details: { error: 'Connectivity test failed' },
       };
-      
-      setTestResults([result, ...testResults.slice(0, 9)]);
+      setTestResults([errorResult, ...testResults.slice(0, 9)]);
+    } finally {
       setRunning(false);
-    }, 1500);
+    }
   };
 
   const generateTestDetails = (type) => {
@@ -170,7 +184,7 @@ const QuickTest = () => {
       'eap-tls': {
         request: 'Access-Request',
         response: 'Access-Accept',
-        status: Math.random() > 0.1 ? 'Valid Auth' : 'Invalid Auth',
+        status: 'Valid Auth',
         attributes: [
           'Code = Access-Request (1)',
           'Identifier = 123',
@@ -306,7 +320,7 @@ const QuickTest = () => {
       'tacacs-authn': {
         request: 'Authentication Start',
         response: 'Authentication Reply',
-        status: Math.random() > 0.1 ? 'Valid Auth' : 'Invalid Auth',
+        status: 'Valid Auth',
         attributes: [
           'Version = 12.0',
           'Type = Authentication (1)',
@@ -329,7 +343,7 @@ const QuickTest = () => {
       'tacacs-authz': {
         request: 'Authorization Request',
         response: 'Authorization Response',
-        status: Math.random() > 0.1 ? 'Valid AuthZ' : 'Invalid AuthZ',
+        status: 'Valid AuthZ',
         attributes: [
           'Version = 12.0',
           'Type = Authorization (2)',
@@ -352,7 +366,7 @@ const QuickTest = () => {
       'tacacs-acct': {
         request: 'Accounting Request',
         response: 'Accounting Response',
-        status: Math.random() > 0.1 ? 'Valid Acct' : 'Invalid Acct',
+        status: 'Valid Acct',
         attributes: [
           'Version = 12.0',
           'Type = Accounting (3)',
@@ -375,7 +389,7 @@ const QuickTest = () => {
       'pxgrid-token': {
         request: 'Token Request',
         response: 'Token Response',
-        status: Math.random() > 0.1 ? 'Valid Token' : 'Invalid Token',
+        status: 'Valid Token',
         attributes: [
           'Client ID = pxgrid-client-001',
           'Grant Type = client_credentials',
@@ -396,7 +410,7 @@ const QuickTest = () => {
       'pxgrid-subscribe': {
         request: 'Subscribe Request',
         response: 'Subscribe Response',
-        status: Math.random() > 0.1 ? 'Valid Subscribe' : 'Invalid Subscribe',
+        status: 'Valid Subscribe',
         attributes: [
           'Topic = /topic/com.cisco.ise.session',
           'Client ID = pxgrid-client-001',

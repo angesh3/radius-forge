@@ -16,133 +16,21 @@ const History = () => {
   const [comparisonMode, setComparisonMode] = useState(false);
   const [comparisonData, setComparisonData] = useState(null);
 
-  // Mock data for test runs
   useEffect(() => {
-    const mockRuns = [
-      {
-        id: 'run-001',
-        name: 'Scale Test 5K RPS',
-        timestamp: '2024-08-14T10:30:00Z',
-        duration: '00:05:30',
-        status: 'completed',
-        target: 'Asset Manager',
-        rps: 5000,
-        avgLatency: 45,
-        successRate: 99.2,
-        errorRate: 0.8,
-        tags: ['nightly', '5k-rps', 'scale-test'],
-        config: {
-          authType: 'PAP',
-          clients: 50,
-          trafficType: 'RADIUS'
-        },
-        metrics: {
-          p95Latency: 78,
-          p99Latency: 125,
-          maxRps: 5150,
-          minRps: 4950
-        }
-      },
-      {
-        id: 'run-002',
-        name: 'Performance Benchmark',
-        timestamp: '2024-08-14T09:15:00Z',
-        duration: '00:12:45',
-        status: 'completed',
-        target: 'Cisco ISE',
-        rps: 10000,
-        avgLatency: 68,
-        successRate: 98.5,
-        errorRate: 1.5,
-        tags: ['benchmark', 'slo-validation'],
-        config: {
-          authType: 'EAP-TLS',
-          clients: 100,
-          trafficType: 'RADIUS'
-        },
-        metrics: {
-          p95Latency: 145,
-          p99Latency: 280,
-          maxRps: 10200,
-          minRps: 9800
-        }
-      },
-      {
-        id: 'run-003',
-        name: 'EAP-TLS Load Test',
-        timestamp: '2024-08-14T08:00:00Z',
-        duration: '00:08:20',
-        status: 'completed',
-        target: 'Asset Manager',
-        rps: 2500,
-        avgLatency: 52,
-        successRate: 99.8,
-        errorRate: 0.2,
-        tags: ['eap-tls', 'tls-test'],
-        config: {
-          authType: 'EAP-TLS',
-          clients: 25,
-          trafficType: 'RADIUS'
-        },
-        metrics: {
-          p95Latency: 89,
-          p99Latency: 156,
-          maxRps: 2580,
-          minRps: 2420
-        }
-      },
-      {
-        id: 'run-004',
-        name: 'Threat Generation Test',
-        timestamp: '2024-08-13T16:45:00Z',
-        duration: '00:03:15',
-        status: 'failed',
-        target: 'Lab Environment',
-        rps: 1000,
-        avgLatency: 125,
-        successRate: 85.2,
-        errorRate: 14.8,
-        tags: ['threat-gen', 'security-test'],
-        config: {
-          authType: 'Mixed',
-          clients: 10,
-          trafficType: 'RADIUS'
-        },
-        metrics: {
-          p95Latency: 245,
-          p99Latency: 450,
-          maxRps: 1050,
-          minRps: 950
-        }
-      },
-      {
-        id: 'run-005',
-        name: 'TACACS+ Authorization Test',
-        timestamp: '2024-08-13T14:30:00Z',
-        duration: '00:06:45',
-        status: 'completed',
-        target: 'Cisco ISE',
-        rps: 1500,
-        avgLatency: 35,
-        successRate: 99.5,
-        errorRate: 0.5,
-        tags: ['tacacs', 'authorization'],
-        config: {
-          authType: 'TACACS+',
-          clients: 15,
-          trafficType: 'TACACS+'
-        },
-        metrics: {
-          p95Latency: 65,
-          p99Latency: 95,
-          maxRps: 1520,
-          minRps: 1480
-        }
+    const fetchTestRuns = async () => {
+      try {
+        const response = await fetch('/api/runs');
+        const data = await response.json();
+        setRuns(data.runs || []);
+        setFilteredRuns(data.runs || []);
+      } catch (error) {
+        console.error('Failed to fetch test runs:', error);
+        setRuns([]);
+        setFilteredRuns([]);
       }
-    ];
-    
-    setRuns(mockRuns);
-    setFilteredRuns(mockRuns);
+    };
+
+    fetchTestRuns();
   }, []);
 
   // Apply filters and search

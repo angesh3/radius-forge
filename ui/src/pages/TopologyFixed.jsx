@@ -198,25 +198,25 @@ const TopologyFixed = () => {
     }
   }, [animateFlow]);
 
-  // Simulate network traffic
+  // Fetch real network topology data
   useEffect(() => {
     if (isSimulating) {
-      const interval = setInterval(() => {
-        setTopology(prev => ({
-          ...prev,
-          nodes: prev.nodes.map(node => ({
-            ...node,
-            metrics: {
-              ...node.metrics,
-              rps: node.metrics.rps ? 
-                Math.floor(node.metrics.rps * (0.9 + Math.random() * 0.2)) : 
-                node.metrics.rps,
-              cpu: node.metrics.cpu ? 
-                Math.min(95, Math.max(10, node.metrics.cpu + (Math.random() - 0.5) * 10)) : 
-                node.metrics.cpu
-            }
-          }))
-        }));
+      const interval = setInterval(async () => {
+        try {
+          const response = await fetch('/api/topology/metrics');
+          const data = await response.json();
+          if (data.nodes) {
+            setTopology(prev => ({
+              ...prev,
+              nodes: prev.nodes.map(node => {
+                const updatedNode = data.nodes.find(n => n.id === node.id);
+                return updatedNode ? { ...node, metrics: updatedNode.metrics } : node;
+              })
+            }));
+          }
+        } catch (error) {
+          console.error('Failed to fetch topology metrics:', error);
+        }
       }, 2000);
       return () => clearInterval(interval);
     }

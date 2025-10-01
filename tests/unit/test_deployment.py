@@ -363,14 +363,20 @@ class TestDeploymentIntegration:
     
     def test_service_port_allocation(self):
         """Test service port allocation strategy"""
-        # RadiusForge v1.3.0 service allocation
+        # RadiusForge expanded service allocation for ports 8910-8926
         service_allocation = {
             "core_services": ["api", "ui", "websocket"],        # 8910-8912
             "test_services": ["radius_test", "tacacs_test"],    # 8913-8914
             "operational": ["syslog", "metrics_export"],       # 8915-8916
             "management": ["health_check", "admin_api"],       # 8917-8918
             "infrastructure": ["backup_service"],              # 8919
-            "reserved": ["reserved"]                           # 8920
+            "reserved": ["reserved"],                          # 8920
+            "monitoring": ["monitoring"],                      # 8921
+            "logging": ["logging"],                           # 8922
+            "analytics": ["analytics"],                       # 8923
+            "reporting": ["reporting"],                       # 8924
+            "integration": ["integration"],                   # 8925
+            "future_use": ["future_use"]                      # 8926
         }
         
         used_ports = set()

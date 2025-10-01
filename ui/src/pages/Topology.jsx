@@ -49,113 +49,18 @@ const Topology = () => {
   const [viewMode, setViewMode] = useState('logical'); // logical, physical, flow
 
   useEffect(() => {
-    // Mock topology data with enhanced information
-    const mockNodes = [
-      {
-        id: 'client',
-        type: 'client',
-        label: 'Test Clients',
-        description: 'RadiusForge Test Generators',
-        status: 'healthy',
-        metrics: {
-          connections: 45,
-          throughput: '2.3 Mbps',
-          latency: '12ms'
-        },
-        details: {
-          ip: '10.0.1.0/24',
-          ports: ['1024-65535'],
-          protocols: ['RADIUS', 'TACACS+']
-        }
-      },
-      {
-        id: 'nas',
-        type: 'nas',
-        label: 'Network Access Server',
-        description: 'Cisco Catalyst 9300',
-        status: 'healthy',
-        metrics: {
-          sessions: 1234,
-          cpu: '23%',
-          memory: '45%'
-        },
-        details: {
-          ip: '192.168.1.1',
-          model: 'C9300-48P',
-          version: '16.12.05'
-        }
-      },
-      {
-        id: 'ise-primary',
-        type: 'radius',
-        label: 'ISE Primary',
-        description: 'Cisco Identity Services Engine',
-        status: 'healthy',
-        metrics: {
-          rps: 850,
-          activeUsers: 2341,
-          policies: 156
-        },
-        details: {
-          ip: '192.168.1.100',
-          version: '3.1.0.518',
-          role: 'Primary Admin & Policy'
-        }
-      },
-      {
-        id: 'ise-secondary',
-        type: 'radius',
-        label: 'ISE Secondary',
-        description: 'Cisco Identity Services Engine',
-        status: 'warning',
-        metrics: {
-          rps: 620,
-          activeUsers: 1789,
-          policies: 156
-        },
-        details: {
-          ip: '192.168.1.101',
-          version: '3.1.0.518',
-          role: 'Secondary Policy'
-        }
-      },
-      {
-        id: 'active-directory',
-        type: 'directory',
-        label: 'Active Directory',
-        description: 'Microsoft Domain Controller',
-        status: 'healthy',
-        metrics: {
-          queries: 345,
-          users: 5670,
-          groups: 234
-        },
-        details: {
-          ip: '192.168.1.200',
-          domain: 'corp.example.com',
-          version: 'Windows Server 2019'
-        }
-      },
-      {
-        id: 'syslog',
-        type: 'monitoring',
-        label: 'Syslog Server',
-        description: 'Centralized Logging',
-        status: 'healthy',
-        metrics: {
-          messages: 1234,
-          storage: '78%',
-          retention: '90 days'
-        },
-        details: {
-          ip: '192.168.1.250',
-          software: 'rsyslog',
-          version: '8.2004.0'
-        }
+    const fetchTopologyData = async () => {
+      try {
+        const response = await fetch('/api/topology/nodes');
+        const data = await response.json();
+        setNodes(data.nodes || []);
+      } catch (error) {
+        console.error('Failed to fetch topology data:', error);
+        setNodes([]);
       }
-    ];
+    };
 
-    setNodes(mockNodes);
+    fetchTopologyData();
   }, []);
 
   const getNodeIcon = (type) => {

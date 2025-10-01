@@ -232,7 +232,7 @@ class RADIUSMetrics:
         return sorted_latencies[min(index, len(sorted_latencies) - 1)]
 
 
-class RADIUSGenerator:
+class RadiusGenerator:
     """RADIUS packet generator for load testing"""
 
     def __init__(

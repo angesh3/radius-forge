@@ -16,7 +16,7 @@ import os
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
 
 from api.generators.radius_generator import (
-    RADIUSGenerator, RADIUSPacket, RADIUSCode, RADIUSAttribute, RADIUSMetrics
+    RadiusGenerator, RADIUSPacket, RADIUSCode, RADIUSAttribute, RADIUSMetrics
 )
 
 
@@ -189,7 +189,7 @@ class TestRADIUSGenerator:
     @pytest.fixture
     def generator(self):
         """Create RADIUS generator for testing"""
-        return RADIUSGenerator(
+        return RadiusGenerator(
             server_host="127.0.0.1",
             server_port=1812,
             secret="testing123",

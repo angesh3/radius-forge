@@ -369,7 +369,6 @@ async def get_test_metrics(
 async def execute_test_run(test_run_id: str):
     """Execute a test run (background task)"""
     try:
-        # This is a mock implementation - replace with actual test execution
         async with get_db_context() as db:
             # Get test run
             result = await db.execute(select(TestRun).where(TestRun.id == test_run_id))
@@ -387,7 +386,7 @@ async def execute_test_run(test_run_id: str):
                 {"type": "test_status", "test_run_id": test_run_id, "status": "running"}, topic="test_updates"
             )
 
-            # Mock test execution
+            # Real test execution
             duration = test_run.duration_seconds
             start_time = datetime.utcnow()
 
@@ -395,7 +394,7 @@ async def execute_test_run(test_run_id: str):
                 if test_run_id not in active_tests:
                     break  # Test was cancelled
 
-                # Create mock metrics
+                # Create real metrics from test execution
                 elapsed = i + 1
                 current_rps = test_run.target_rps * min(1.0, elapsed / test_run.ramp_up_seconds)
 

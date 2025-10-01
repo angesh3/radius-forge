@@ -252,50 +252,37 @@ const TestCoverageReport = () => {
     }
   };
 
-  // Failed tests details
-  const failedTests = [
-    {
-      suite: 'Authentication Module',
-      test: 'should handle expired tokens correctly',
-      file: 'auth.controller.spec.js',
-      error: 'Expected status 401 but received 200',
-      line: 142,
-      type: 'unit'
-    },
-    {
-      suite: 'RADIUS Protocol',
-      test: 'should validate malformed packets',
-      file: 'radius.attributes.spec.js',
-      error: 'Malformed packet not rejected',
-      line: 87,
-      type: 'unit'
-    },
-    {
-      suite: 'User Journeys',
-      test: 'Generate Report',
-      file: 'report.e2e.spec.js',
-      error: 'Timeout waiting for report generation',
-      line: 234,
-      type: 'e2e'
-    },
-    {
-      suite: 'Load Testing Scenarios',
-      test: 'Burst Load Test',
-      file: 'burst.e2e.spec.js',
-      error: 'Failed to handle burst at 10k RPS',
-      line: 156,
-      type: 'e2e'
-    },
-  ];
+  const [failedTests, setFailedTests] = useState([]);
 
-  // Coverage trends (mock historical data)
-  const coverageTrends = [
-    { build: 'BUILD-1001', date: '2024-01-10', overall: 72.3, unit: 78.5, integration: 68.2, e2e: 62.1 },
-    { build: 'BUILD-1002', date: '2024-01-11', overall: 74.8, unit: 80.2, integration: 70.1, e2e: 64.3 },
-    { build: 'BUILD-1003', date: '2024-01-12', overall: 76.2, unit: 82.1, integration: 71.5, e2e: 65.8 },
-    { build: 'BUILD-1004', date: '2024-01-13', overall: 77.9, unit: 84.3, integration: 72.2, e2e: 67.2 },
-    { build: buildId, date: '2024-01-14', overall: 78.5, unit: 85.2, integration: 72.8, e2e: 68.4 },
-  ];
+  useEffect(() => {
+    const fetchFailedTests = async () => {
+      try {
+        const response = await fetch('/api/test-coverage/failed-tests');
+        const data = await response.json();
+        setFailedTests(data.failedTests || []);
+      } catch (error) {
+        console.error('Failed to fetch failed tests:', error);
+      }
+    };
+
+    fetchFailedTests();
+  }, []);
+
+  const [coverageTrends, setCoverageTrends] = useState([]);
+
+  useEffect(() => {
+    const fetchCoverageTrends = async () => {
+      try {
+        const response = await fetch('/api/test-coverage/trends');
+        const data = await response.json();
+        setCoverageTrends(data.trends || []);
+      } catch (error) {
+        console.error('Failed to fetch coverage trends:', error);
+      }
+    };
+
+    fetchCoverageTrends();
+  }, []);
 
   const handleAccordionChange = (panel) => (event, isExpanded) => {
     setExpandedSuite(isExpanded ? panel : false);

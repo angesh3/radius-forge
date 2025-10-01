@@ -405,7 +405,7 @@ VOLUME ["/opt/radiusforge/data", "/opt/radiusforge/logs", "/opt/radiusforge/conf
 # Start services
 ENTRYPOINT ["/opt/radiusforge/docker-entrypoint.sh"]
 BUNDLE_DOCKERFILE
-cp docker-compose-allinone.yml ${BUILD_DIR}/${FULL_BUNDLE}/container/docker-compose.yml
+cp docker-compose-multi.yml ${BUILD_DIR}/${FULL_BUNDLE}/container/docker-compose.yml
 cp nginx.conf ${BUILD_DIR}/${FULL_BUNDLE}/
 
 mkdir -p ${BUILD_DIR}/${FULL_BUNDLE}/scripts

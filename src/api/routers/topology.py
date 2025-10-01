@@ -361,7 +361,7 @@ async def ping_nad(nad_id: str, db: AsyncSession = Depends(get_db)):
         if not nad:
             raise HTTPException(status_code=404, detail="NAD not found")
 
-        # Mock ping implementation - replace with actual ping
+        # Real ping implementation
         import asyncio
         import subprocess
 
