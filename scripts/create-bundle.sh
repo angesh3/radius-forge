@@ -738,6 +738,14 @@ deploy_container() {
     echo "Building Docker image..."
     docker build -f container/Dockerfile -t radiusforge:${VERSION} .
     
+    echo "Checking for existing container..."
+    if docker ps -a --format "table {{.Names}}" | grep -q "^radiusforge$"; then
+        echo "Stopping existing container..."
+        docker stop radiusforge 2>/dev/null || true
+        echo "Removing existing container..."
+        docker rm radiusforge 2>/dev/null || true
+    fi
+    
     echo "Starting container..."
     docker run -d \
         --name radiusforge \

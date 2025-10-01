@@ -247,12 +247,12 @@ install_container() {
     
     check_requirements
     
-    if [ "$OPERATION" = "upgrade" ]; then
-        if docker ps -q -f name=radiusforge > /dev/null 2>&1; then
-            echo "Stopping existing container..."
-            docker stop radiusforge 2>/dev/null || true
-            docker rm radiusforge 2>/dev/null || true
-        fi
+    # Check for existing container for both install and upgrade operations
+    if docker ps -a --format "table {{.Names}}" | grep -q "^radiusforge$"; then
+        echo "Stopping existing container..."
+        docker stop radiusforge 2>/dev/null || true
+        echo "Removing existing container..."
+        docker rm radiusforge 2>/dev/null || true
     fi
     
     echo "Building Docker image..."
