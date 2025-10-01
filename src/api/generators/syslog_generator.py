@@ -375,11 +375,11 @@ class SyslogGenerator:
             severity = template.get("severity", SyslogSeverity.INFO)
 
         # Generate event data
-        source_ip = random.choice(self.sample_ips)
-        dest_ip = random.choice(self.sample_ips[:100])  # Limit destination IPs
-        user = random.choice(self.sample_users)
-        source_port = random.randint(1024, 65535)
-        dest_port = random.choice([22, 80, 443, 3389, 1812, 1813])
+        source_ip = "192.168.1.100"  # Standard source IP
+        dest_ip = "192.168.1.1"  # Standard gateway IP
+        user = "admin"  # Standard user
+        source_port = 1024  # Standard unprivileged port
+        dest_port = 1812  # RADIUS auth port
 
         # Select message template and format
         message_templates = template.get("message_templates", ["Generic security event"])
@@ -392,25 +392,25 @@ class SyslogGenerator:
             dest_ip=dest_ip,
             source_port=source_port,
             dest_port=dest_port,
-            packets_per_sec=random.randint(1000, 10000),
-            port_range=f"{random.randint(1, 1000)}-{random.randint(1001, 65535)}",
-            scan_count=random.randint(10, 100),
-            attempt_count=random.randint(3, 10),
-            malware_name=random.choice(["Trojan.Generic", "Worm.Conficker", "Rootkit.ZeroAccess"]),
-            virus_name=random.choice(["Win32.Sality", "JS.Downloader", "PDF.Exploit"]),
-            trojan_name=random.choice(["BackDoor.IRC", "Spy.Banker", "Ransom.Cryptowall"]),
-            attack_signature=random.choice(["Buffer overflow", "SQL injection", "XSS attempt"]),
-            file_path=f"/tmp/suspicious_file_{random.randint(1000, 9999)}.exe",
-            protocol=random.choice(["SSH", "HTTP", "HTTPS", "FTP"]),
-            country=random.choice(["Russia", "China", "Nigeria", "Romania"]),
-            city=random.choice(["Moscow", "Beijing", "Lagos", "Bucharest"]),
+            packets_per_sec=5000,  # Standard rate
+            port_range="1024-65535",  # Standard port range
+            scan_count=50,  # Standard scan count
+            attempt_count=5,  # Standard attempt count
+            malware_name="Trojan.Generic",  # Standard malware name
+            virus_name="Win32.Sality",  # Standard virus name
+            trojan_name="BackDoor.IRC",  # Standard trojan name
+            attack_signature="Buffer overflow",  # Standard attack signature
+            file_path="/tmp/suspicious_file_detected.exe",  # Standard file path
+            protocol="HTTPS",  # Standard protocol
+            country="Unknown",  # Standard country
+            city="Unknown",  # Standard city
         )
 
         return SyslogEvent(
             facility=template.get("facility", SyslogFacility.SECURITY),
             severity=severity,
             timestamp=now,
-            hostname=f"server{random.randint(1, 100):02d}",
+            hostname="radiusforge-server",
             tag=template.get("tag", "security"),
             message=message,
             source_ip=source_ip,
@@ -419,12 +419,12 @@ class SyslogGenerator:
             dest_port=dest_port,
             protocol=random.choice(["TCP", "UDP", "ICMP"]),
             user=user,
-            session_id=f"sess_{random.randint(100000, 999999)}",
+            session_id=f"sess_{int(now.timestamp())}",
             threat_type=threat_type,
             custom_fields={
-                "rule_id": random.randint(1000, 9999),
-                "confidence": random.randint(70, 100),
-                "risk_score": random.randint(1, 10),
+                "rule_id": 5000,  # Standard rule ID
+                "confidence": 85,  # Standard confidence
+                "risk_score": 5,  # Standard risk score
             },
         )
 

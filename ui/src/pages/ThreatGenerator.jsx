@@ -180,20 +180,20 @@ const ThreatGenerator = () => {
 
       setTelemetry(prev => ({
         dropReasons: {
-          'Invalid AVP': Math.floor(Math.random() * 100),
-          'Oversized Packet': Math.floor(Math.random() * 50),
-          'Unknown User': Math.floor(Math.random() * 200),
-          'Wrong Secret': Math.floor(Math.random() * 150)
+          'Invalid AVP': 0,
+          'Oversized Packet': 0,
+          'Unknown User': 0,
+          'Wrong Secret': 0
         },
-        parserErrors: prev.parserErrors + Math.floor(Math.random() * 10),
-        nasTimeouts: prev.nasTimeouts + Math.floor(Math.random() * 5),
+        parserErrors: prev.parserErrors,
+        nasTimeouts: prev.nasTimeouts,
         alerts: prev.alerts.length < 10 ? [
           ...prev.alerts,
           {
             id: Date.now(),
             timestamp: new Date().toISOString(),
             level: 'warning',
-            message: `Threshold breach detected: Error rate ${(Math.random() * 20).toFixed(1)}%`
+            message: `Threshold breach detected: Error rate 0.0%`
           }
         ] : prev.alerts
       }));

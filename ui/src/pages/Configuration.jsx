@@ -1020,9 +1020,9 @@ Add Device:
                     <Grid item xs={12}>
                       <Button 
                         variant="contained" 
-                        onClick={() => {
+                        onClick={async () => {
                           if (newServer.name && newServer.host && newServer.secret) {
-                            setRadiusServers([...radiusServers, {...newServer, id: Date.now()}]);
+                            await handleSaveServer(newServer);
                             setNewServer({
                               name: '',
                               host: '',
@@ -1033,8 +1033,6 @@ Add Device:
                               enabled: true,
                             });
                             setAddServerOpen(false);
-                            setSaved(true);
-                            setTimeout(() => setSaved(false), 3000);
                           }
                         }}
                       >

@@ -20,12 +20,12 @@ class Settings(BaseSettings):
 
     # Database Configuration
     DATABASE_URL: str = Field(
-        default="postgresql+asyncpg://radiusforge:radiusforge@localhost/radiusforge", env="DATABASE_URL"
+        default="postgresql+asyncpg://radiusforge:radiusforge@radiusforge-db-prod/radiusforge", env="DATABASE_URL"
     )
     DATABASE_ECHO: bool = Field(default=False, env="DATABASE_ECHO")
 
     # Redis Configuration (for caching and session storage)
-    REDIS_URL: str = Field(default="redis://localhost:6379/0", env="REDIS_URL")
+    REDIS_URL: str = Field(default="redis://radiusforge-redis-prod:6379/0", env="REDIS_URL")
 
     # CORS Configuration
     CORS_ORIGINS: str = Field(default="http://localhost:8911,http://127.0.0.1:8911", env="CORS_ORIGINS")

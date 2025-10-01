@@ -1127,94 +1127,106 @@ async def create_server(server_data: dict):
     from .database import get_db_context
     from .models import NAD, NADType
     
-    async with get_db_context() as db:
-        type_mapping = {
-            "radius": NADType.RADIUS_SERVER,
-            "tacacs": NADType.TACACS_SERVER,
-            "pxgrid": NADType.PXGRID_SERVER
-        }
-        server_type = server_data.get("type", "radius")
-        nad_type = type_mapping.get(server_type, NADType.RADIUS_SERVER)
-        
-        new_server = NAD(
-            name=server_data["name"],
-            ip_address=server_data["host"],
-            device_type=nad_type,
-            is_active=server_data.get("enabled", True),
-            radius_secret=server_data["secret"]
-        )
-        db.add(new_server)
-        await db.commit()
-        await db.refresh(new_server)
-        
-        return {
-            "id": new_server.id,
-            "name": new_server.name,
-            "host": new_server.ip_address,
-            "type": {"radius_server": "radius", "tacacs_server": "tacacs", "pxgrid_server": "pxgrid"}.get(new_server.device_type.value, "radius"),
-            "enabled": new_server.is_active
-        }
+    try:
+        async with get_db_context() as db:
+            type_mapping = {
+                "radius": NADType.RADIUS_SERVER,
+                "tacacs": NADType.TACACS_SERVER,
+                "pxgrid": NADType.PXGRID_SERVER
+            }
+            server_type = server_data.get("type", "radius")
+            nad_type = type_mapping.get(server_type, NADType.RADIUS_SERVER)
+            
+            new_server = NAD(
+                name=server_data["name"],
+                ip_address=server_data["host"],
+                device_type=nad_type,
+                is_active=server_data.get("enabled", True),
+                radius_secret=server_data["secret"]
+            )
+            db.add(new_server)
+            await db.commit()
+            await db.refresh(new_server)
+            
+            return {
+                "id": new_server.id,
+                "name": new_server.name,
+                "host": new_server.ip_address,
+                "type": {"RADIUS_SERVER": "radius", "TACACS_SERVER": "tacacs", "PXGRID_SERVER": "pxgrid"}.get(new_server.device_type.value, "radius"),
+                "enabled": new_server.is_active
+            }
+    except Exception as e:
+        logger.error(f"Error creating server: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create server: {str(e)}")
 
 
 @app.put("/api/servers/{server_id}")
-async def update_server(server_id: int, server_data: dict):
+async def update_server(server_id: str, server_data: dict):
     """Update existing server configuration"""
     from .database import get_db_context
     from .models import NAD, NADType
     from sqlalchemy import select
     
-    async with get_db_context() as db:
-        result = await db.execute(select(NAD).where(NAD.id == server_id))
-        server = result.scalar_one_or_none()
-        
-        if not server:
-            raise HTTPException(status_code=404, detail="Server not found")
-        
-        type_mapping = {
-            "radius": NADType.RADIUS_SERVER,
-            "tacacs": NADType.TACACS_SERVER,
-            "pxgrid": NADType.PXGRID_SERVER
-        }
-        
-        server.name = server_data.get("name", server.name)
-        server.ip_address = server_data.get("host", server.ip_address)
-        if "type" in server_data:
-            server_type = server_data["type"]
-            server.device_type = type_mapping.get(server_type, NADType.RADIUS_SERVER)
-        server.is_active = server_data.get("enabled", server.is_active)
-        if "secret" in server_data:
-            server.radius_secret = server_data["secret"]
-        
-        await db.commit()
-        await db.refresh(server)
-        
-        return {
-            "id": server.id,
-            "name": server.name,
-            "host": server.ip_address,
-            "type": {"radius_server": "radius", "tacacs_server": "tacacs", "pxgrid_server": "pxgrid"}.get(server.device_type.value, "radius"),
-            "enabled": server.is_active
-        }
+    try:
+        async with get_db_context() as db:
+            result = await db.execute(select(NAD).where(NAD.id == server_id))
+            server = result.scalar_one_or_none()
+            
+            if not server:
+                raise HTTPException(status_code=404, detail="Server not found")
+            
+            type_mapping = {
+                "radius": NADType.RADIUS_SERVER,
+                "tacacs": NADType.TACACS_SERVER,
+                "pxgrid": NADType.PXGRID_SERVER
+            }
+            
+            server.name = server_data.get("name", server.name)
+            server.ip_address = server_data.get("host", server.ip_address)
+            if "type" in server_data:
+                server_type = server_data["type"]
+                server.device_type = type_mapping.get(server_type, NADType.RADIUS_SERVER)
+            server.is_active = server_data.get("enabled", server.is_active)
+            if "secret" in server_data:
+                server.radius_secret = server_data["secret"]
+            
+            await db.commit()
+            await db.refresh(server)
+            
+            return {
+                "id": server.id,
+                "name": server.name,
+                "host": server.ip_address,
+                "type": {"RADIUS_SERVER": "radius", "TACACS_SERVER": "tacacs", "PXGRID_SERVER": "pxgrid"}.get(server.device_type.value, "radius"),
+                "enabled": server.is_active
+            }
+    except Exception as e:
+        logger.error(f"Error updating server: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update server: {str(e)}")
 
 
 @app.delete("/api/servers/{server_id}")
-async def delete_server(server_id: int):
+async def delete_server(server_id: str):
     """Delete server configuration"""
     from .database import get_db_context
     from .models import NAD
     from sqlalchemy import select
     
-    async with get_db_context() as db:
-        result = await db.execute(select(NAD).where(NAD.id == server_id))
-        server = result.scalar_one_or_none()
-        
-        if not server:
-            raise HTTPException(status_code=404, detail="Server not found")
-        
-        await db.delete(server)
-        await db.commit()
-        
-        return {"message": "Server deleted successfully"}
+    try:
+        async with get_db_context() as db:
+            result = await db.execute(select(NAD).where(NAD.id == server_id))
+            server = result.scalar_one_or_none()
+            
+            if not server:
+                raise HTTPException(status_code=404, detail="Server not found")
+            
+            await db.delete(server)
+            await db.commit()
+            
+            return {"message": "Server deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting server: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete server: {str(e)}")
 
 
 @app.post("/api/config/system")

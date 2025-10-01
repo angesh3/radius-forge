@@ -247,7 +247,7 @@ const ThreatGeneratorEnhanced = () => {
       'Auto-throttle engaged due to high error rate',
       'Kill switch armed - ready for emergency stop'
     ];
-    return messages[Math.floor(Math.random() * messages.length)];
+    return messages[0];  // Use first message consistently
   };
 
   const generateLog = () => {
@@ -261,7 +261,7 @@ const ThreatGeneratorEnhanced = () => {
       { level: 'SUCCESS', message: 'Safety controls validated and active' },
     ];
     
-    const randomLog = logTypes[Math.floor(Math.random() * logTypes.length)];
+    const randomLog = logTypes[0];  // Use first log type consistently
     setLogs(prev => [...prev.slice(-49), {
       timestamp: new Date().toISOString(),
       ...randomLog
