@@ -3,7 +3,7 @@
 ## 🚀 Quick Start
 
 ### What's New in v1.3.0
-- ✅ **Expanded Port Range**: 8910-8920 (11 dedicated services)
+- ✅ **Expanded Port Range**: 8910-8926 (17 dedicated services)
 - ✅ **Versioned Bundles**: Full and Delta deployment packages
 - ✅ **Fixed Naming**: "Asset Manager" → "Cisco Access Manager"
 - ✅ **RADIUS Routing**: NAD → Access Manager OR ISE (exclusive)
@@ -21,7 +21,7 @@ This will generate:
 - `RADIUSFORGE-PRODUCTION-V1.3.0-COMPLETE.tar.gz` - Full installation
 - `RADIUSFORGE-PRODUCTION-V1.3.0-DELTA.tar.gz` - Update from v1.2.x
 
-## 🔧 Port Configuration (8910-8920)
+## 🔧 Port Configuration (8910-8926)
 
 | Port | Service | Purpose |
 |------|---------|---------|
@@ -36,6 +36,12 @@ This will generate:
 | **8918** | Admin API | Administrative functions |
 | **8919** | Backup Service | Data backup/restore |
 | **8920** | Reserved | Future use |
+| **8921** | pxGrid Client | Cisco ISE pxGrid |
+| **8922** | TACACS+ Auth | TACACS+ Authentication |
+| **8923** | TACACS+ Authz | TACACS+ Authorization |
+| **8924** | TACACS+ Acct | TACACS+ Accounting |
+| **8925** | Connectivity | Network probes |
+| **8926** | Reserved | Future expansion |
 
 ## 🖥️ Installation Instructions
 
@@ -68,7 +74,7 @@ services:
   radiusforge:
     image: radiusforge:1.3.0
     ports:
-      - "8910-8920:8910-8920"
+      - "8910-8926:8910-8926"
     environment:
       - RADIUS_SERVER_TYPE=access-manager
       - RADIUS_PRIMARY_HOST=192.168.1.10
@@ -133,7 +139,7 @@ aaa authorization network default group radius
 
 ```bash
 # Check all ports are listening
-for port in {8910..8920}; do
+for port in {8910..8926}; do
   echo "Port $port: $(nc -zv localhost $port 2>&1 | grep -o 'succeeded\|refused')"
 done
 
@@ -230,7 +236,7 @@ tail -f /opt/radiusforge/logs/syslog.log
 ### Check Current Version
 ```bash
 curl http://localhost:8910/api/version
-# Returns: {"version": "1.3.0", "port_range": "8910-8920"}
+# Returns: {"version": "1.3.0", "port_range": "8910-8926"}
 ```
 
 ### Update to New Version
@@ -312,7 +318,7 @@ TIMEOUT_SECONDS=30
 ## 🚨 Important Notes
 
 1. **RADIUS Routing**: NAD devices send traffic to EITHER Access Manager OR ISE, not both
-2. **Port Range**: All services use 8910-8920, ensure firewall allows these
+2. **Port Range**: All services use 8910-8926, ensure firewall allows these
 3. **Python Version**: RHEL 8.8 requires Python 3.6.8 specifically
 4. **Bundle Sizes**: 
    - Full: ~400MB compressed
@@ -328,7 +334,7 @@ TIMEOUT_SECONDS=30
 
 ## ✅ Deployment Checklist
 
-- [ ] Ports 8910-8920 available
+- [ ] Ports 8910-8926 available
 - [ ] Python 3.6.8+ installed
 - [ ] Node.js 14+ installed (for UI build)
 - [ ] RADIUS server configured (Access Manager or ISE)
@@ -343,7 +349,7 @@ TIMEOUT_SECONDS=30
 
 **Version**: 1.3.0  
 **Build Date**: August 14, 2024  
-**Port Range**: 8910-8920  
+**Port Range**: 8910-8926  
 **Status**: Production Ready
 
 © 2024 RadiusForge - Enterprise AAA Traffic Load Testing Platform

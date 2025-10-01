@@ -4,7 +4,7 @@
 **RadiusForge** - Enterprise AAA Traffic Load Testing Platform  
 **Primary Target**: Access Manager  
 **Secondary**: Cisco ISE (Optional)  
-**Port Range**: 8910-8920  
+**Port Range**: 8910-8926  
 
 ## ✅ Successfully Implemented Features
 
@@ -132,7 +132,7 @@ MAB:
 ### Backend
 - FastAPI (Python)
 - WebSocket support
-- CORS enabled for 8910-8920 ports
+- CORS enabled for 8910-8926 ports
 - Async/await pattern
 
 ### Deployment

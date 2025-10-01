@@ -683,7 +683,7 @@ set -e
 echo "Starting RadiusForge CI tests..."
 
 # Start services
-docker run -d --name radiusforge-ci -p 8910-8920:8910-8920 radiusforge:1.4.0-allinone
+docker run -d --name radiusforge-ci -p 8910-8926:8910-8926 radiusforge:1.4.0-allinone
 
 # Wait for services
 sleep 10

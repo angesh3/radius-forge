@@ -151,7 +151,7 @@ class HealthHandler(http.server.SimpleHTTPRequestHandler):
             status = {
                 'status': 'healthy',
                 'version': '1.3.1',
-                'ports': '8910-8920',
+                'ports': '8910-8926',
                 'platform': 'RHEL'
             }
             self.wfile.write(json.dumps(status).encode())
@@ -180,7 +180,7 @@ EOF
     
     # Configure firewall
     echo "Configuring firewall..."
-    for port in {8910..8920}; do
+    for port in {8910..8926}; do
         firewall-cmd --permanent --add-port=${port}/tcp 2>/dev/null
         firewall-cmd --permanent --add-port=${port}/udp 2>/dev/null
     done
@@ -189,7 +189,7 @@ EOF
     # Configure SELinux if enabled
     if command -v getenforce &> /dev/null && [ "$(getenforce)" != "Disabled" ]; then
         echo "Configuring SELinux..."
-        semanage port -a -t http_port_t -p tcp 8910-8920 2>/dev/null || true
+        semanage port -a -t http_port_t -p tcp 8910-8926 2>/dev/null || true
         setsebool -P httpd_can_network_connect 1 2>/dev/null || true
     fi
     
@@ -297,7 +297,7 @@ start_services() {
     echo "  📚 API Docs:      http://$(hostname -I | awk '{print $1}'):8910/docs"
     echo "  💚 Health Check:  http://$(hostname -I | awk '{print $1}'):8917/health"
     echo ""
-    echo "  Port Range: 8910-8920"
+    echo "  Port Range: 8910-8926"
     echo "  Logs: $LOG_DIR/"
     echo ""
 }
@@ -380,9 +380,9 @@ check_status() {
     echo ""
     echo "Firewall Status:"
     if firewall-cmd --list-ports 2>/dev/null | grep -q "8910"; then
-        echo -e "  Ports 8910-8920: ${GREEN}Open${NC}"
+        echo -e "  Ports 8910-8926: ${GREEN}Open${NC}"
     else
-        echo -e "  Ports 8910-8920: ${YELLOW}Not configured${NC}"
+        echo -e "  Ports 8910-8926: ${YELLOW}Not configured${NC}"
     fi
     
     # Check SELinux

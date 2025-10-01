@@ -27,14 +27,14 @@ class TestAPISecurityValidations:
     
     def test_validate_port_range_valid_ports(self):
         """Test port range validation for valid ports"""
-        valid_ports = [8910, 8911, 8912, 8913, 8914, 8915, 8916, 8917, 8918, 8919, 8920]
+        valid_ports = [8910, 8911, 8912, 8913, 8914, 8915, 8916, 8917, 8918, 8919, 8920, 8921, 8922, 8923, 8924, 8925, 8926]
         
         for port in valid_ports:
             assert validate_port_range(port), f"Port {port} should be valid"
     
     def test_validate_port_range_invalid_ports(self):
         """Test port range validation for invalid ports"""
-        invalid_ports = [8909, 8921, 8000, 3000, 80, 443, 22, 65536, 0, -1]
+        invalid_ports = [8909, 8927, 8000, 3000, 80, 443, 22, 65536, 0, -1]
         
         for port in invalid_ports:
             assert not validate_port_range(port), f"Port {port} should be invalid"
@@ -172,7 +172,13 @@ class TestAPISecurityValidations:
             "health_check": 8917,
             "admin_api": 8918,
             "backup_service": 8919,
-            "reserved": 8920
+            "reserved": 8920,
+            "extended1": 8921,
+            "extended2": 8922,
+            "extended3": 8923,
+            "extended4": 8924,
+            "extended5": 8925,
+            "extended6": 8926
         }
         
         for service, port in radiusforge_ports.items():
@@ -233,7 +239,7 @@ class TestSecurityConfiguration:
         """Test deployment security requirements"""
         # Verify all ports are in secure range
         min_port = 8910
-        max_port = 8920
+        max_port = 8926
         
         # Test boundary conditions
         assert validate_port_range(min_port), "Minimum port should be valid"

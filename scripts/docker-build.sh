@@ -167,6 +167,12 @@ else
         -p 8918:8918 \
         -p 8919:8919 \
         -p 8920:8920 \
+        -p 8921:8921 \
+        -p 8922:8922 \
+        -p 8923:8923 \
+        -p 8924:8924 \
+        -p 8925:8925 \
+        -p 8926:8926 \
         -v $(pwd)/data:/opt/radiusforge/data \
         -v $(pwd)/logs:/opt/radiusforge/logs \
         -v $(pwd)/config:/opt/radiusforge/config \
@@ -244,7 +250,7 @@ cat > ${BUNDLE_DIR}/README.md << EOF
 
 ### Prerequisites
 - Docker installed (Docker Desktop for macOS/Windows, Docker Engine for Linux)
-- Ports 8910-8920 available
+- Ports 8910-8926 available
 - 2GB+ free disk space
 
 ### Deployment Steps
@@ -291,7 +297,7 @@ docker-compose down -v
 \`\`\`bash
 # Start container
 docker run -d --name radiusforge \\
-  -p 8910-8920:8910-8920 \\
+  -p 8910-8926:8910-8926 \\
   radiusforge:${VERSION}-allinone
 
 # View logs
@@ -319,6 +325,12 @@ docker rm radiusforge
 | 8918 | Admin API | Administrative functions |
 | 8919 | Backup | Backup service |
 | 8920 | Reserved | Future use |
+| 8921 | WebSocket Alt | Alternative WebSocket |
+| 8922 | Test Runner | Automated test execution |
+| 8923 | Report Gen | Report generation service |
+| 8924 | Data Export | Data export service |
+| 8925 | Monitoring | System monitoring |
+| 8926 | Reserved | Future expansion |
 
 ## 🔧 Configuration
 
@@ -347,7 +359,7 @@ Volumes are mounted to local directories:
 docker logs radiusforge
 
 # Check if ports are in use
-lsof -i :8910-8920
+lsof -i :8910-8926
 \`\`\`
 
 ### Can't access UI:

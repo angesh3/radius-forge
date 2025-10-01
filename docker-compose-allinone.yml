@@ -12,7 +12,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      # All RadiusForge services on ports 8910-8920
+      # All RadiusForge services on ports 8910-8926
       - "8910:8910"      # API Server
       - "8911:8911"      # Web UI
       - "8912:8912"      # WebSocket
@@ -24,6 +24,12 @@ services:
       - "8918:8918"      # Admin API
       - "8919:8919"      # Backup Service
       - "8920:8920"      # Reserved
+      - "8921:8921"      # pxGrid Client
+      - "8922:8922"      # Connectivity Probe
+      - "8923:8923"      # Report Generator
+      - "8924:8924"      # Data Analytics
+      - "8925:8925"      # Event Processor
+      - "8926:8926"      # Future Expansion
     environment:
       # RADIUS Configuration
       - RADIUS_SERVER_TYPE=${RADIUS_SERVER_TYPE:-access-manager}

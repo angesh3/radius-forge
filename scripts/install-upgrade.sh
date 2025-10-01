@@ -236,7 +236,7 @@ install_traditional() {
     fi
     echo "3. Access: http://localhost:8911"
     echo ""
-    echo "Port Range: 8910-8920"
+    echo "Port Range: 8910-8926"
     echo "Installation: $INSTALL_DIR"
     echo ""
 }
@@ -262,7 +262,7 @@ install_container() {
     echo "Starting container..."
     docker run -d \
         --name radiusforge \
-        -p 8910-8920:8910-8920 \
+        -p 8910-8926:8910-8926 \
         --restart unless-stopped \
         radiusforge:${VERSION}
     
@@ -295,7 +295,7 @@ install_container() {
     echo "  docker start radiusforge    # Start container"
     echo "  docker restart radiusforge  # Restart container"
     echo ""
-    echo "Port Range: 8910-8920"
+    echo "Port Range: 8910-8926"
     echo "Container: radiusforge:${VERSION}"
     echo ""
 }
@@ -327,7 +327,7 @@ rollback_installation() {
         
         docker run -d \
             --name radiusforge \
-            -p 8910-8920:8910-8920 \
+            -p 8910-8926:8910-8926 \
             --restart unless-stopped \
             radiusforge:${backup_version}
     else

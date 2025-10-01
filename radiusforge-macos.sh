@@ -120,8 +120,8 @@ check_status() {
     
     # Check other ports
     echo ""
-    echo "Port Range Status (8910-8920):"
-    for port in {8910..8920}; do
+    echo "Port Range Status (8910-8926):"
+    for port in {8910..8926}; do
         if lsof -i :$port > /dev/null 2>&1; then
             echo "  Port $port: In use"
         fi

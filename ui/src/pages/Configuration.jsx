@@ -998,7 +998,7 @@ Add Device:
                 
                 <Alert severity="info" sx={{ mb: 2 }}>
                   <Typography variant="body2">
-                    RadiusForge v1.3.0 uses ports 8910-8920 for various services.
+                    RadiusForge v1.3.0 uses ports 8910-8926 for various services.
                   </Typography>
                 </Alert>
 

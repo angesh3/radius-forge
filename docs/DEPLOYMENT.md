@@ -7,7 +7,7 @@ RadiusForge uses a unified bundle creation and deployment system with comprehens
 
 ## Port Configuration
 
-RadiusForge now uses ports in the **8910-8920** range:
+RadiusForge now uses ports in the **8910-8926** range:
 
 | Service | Port | Description |
 |---------|------|-------------|
@@ -182,11 +182,11 @@ Update firewall rules for the new port range:
 
 ```bash
 # Allow RadiusForge ports
-firewall-cmd --permanent --add-port=8910-8920/tcp
+firewall-cmd --permanent --add-port=8910-8926/tcp
 firewall-cmd --reload
 
 # Or with iptables
-iptables -A INPUT -p tcp --dport 8910:8920 -j ACCEPT
+iptables -A INPUT -p tcp --dport 8910:8926 -j ACCEPT
 ```
 
 ## Health Checks
@@ -213,7 +213,7 @@ wscat -c ws://localhost:8912/ws/telemetry
 ```bash
 # Check if ports are in use
 netstat -tuln | grep -E '891[0-9]'
-lsof -i :8910-8920
+lsof -i :8910-8926
 ```
 
 ### Service Issues

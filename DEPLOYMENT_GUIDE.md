@@ -11,7 +11,7 @@
 
 ## Overview
 
-RadiusForge is an enterprise AAA Traffic Load Testing Platform designed to test RADIUS authentication at scale. Version 1.3.0 introduces expanded port range (8910-8920), versioned deployment bundles, and enhanced RADIUS server integration.
+RadiusForge is an enterprise AAA Traffic Load Testing Platform designed to test RADIUS authentication at scale. Version 1.3.0 introduces expanded port range (8910-8926), versioned deployment bundles, and enhanced RADIUS server integration.
 
 ### Key Features
 - Support for Cisco Access Manager (Primary) and Cisco ISE (Alternative)
@@ -35,7 +35,7 @@ RadiusForge is an enterprise AAA Traffic Load Testing Platform designed to test 
 - **Docker**: 20.10+ (optional)
 
 ### Network Requirements
-- Ports 8910-8920 available
+- Ports 8910-8926 available
 - Network access to RADIUS servers
 - Firewall rules configured
 
@@ -56,13 +56,19 @@ RadiusForge is an enterprise AAA Traffic Load Testing Platform designed to test 
 | 8918 | Admin API | HTTPS | Administrative functions |
 | 8919 | Backup Service | HTTP | Data backup and restore |
 | 8920 | Reserved | - | Future expansion |
+| 8921 | Extended Service 1 | HTTP | Additional service capacity |
+| 8922 | Extended Service 2 | HTTP | Additional service capacity |
+| 8923 | Extended Service 3 | HTTP | Additional service capacity |
+| 8924 | Extended Service 4 | HTTP | Additional service capacity |
+| 8925 | Extended Service 5 | HTTP | Additional service capacity |
+| 8926 | Extended Service 6 | HTTP | Additional service capacity |
 
 ### Firewall Configuration
 
 #### RHEL/CentOS
 ```bash
-# Open ports 8910-8920
-for port in {8910..8920}; do
+# Open ports 8910-8926
+for port in {8910..8926}; do
     sudo firewall-cmd --permanent --add-port=${port}/tcp
     sudo firewall-cmd --permanent --add-port=${port}/udp
 done
@@ -72,7 +78,7 @@ sudo firewall-cmd --reload
 #### Ubuntu/Debian
 ```bash
 # Using ufw
-for port in {8910..8920}; do
+for port in {8910..8926}; do
     sudo ufw allow ${port}/tcp
     sudo ufw allow ${port}/udp
 done
@@ -82,8 +88,8 @@ sudo ufw reload
 #### macOS
 ```bash
 # Add to /etc/pf.conf
-pass in proto tcp from any to any port 8910:8920
-pass in proto udp from any to any port 8910:8920
+pass in proto tcp from any to any port 8910:8926
+pass in proto udp from any to any port 8910:8926
 
 # Reload
 sudo pfctl -f /etc/pf.conf
@@ -176,7 +182,7 @@ services:
     image: radiusforge:1.3.0
     container_name: radiusforge
     ports:
-      - "8910-8920:8910-8920"
+      - "8910-8926:8910-8926"
     environment:
       - API_PORT=8910
       - UI_PORT=8911
@@ -422,7 +428,7 @@ curl -X POST http://localhost:8919/backup
 #### Port Already in Use
 ```bash
 # Check port usage
-for port in {8910..8920}; do
+for port in {8910..8926}; do
     echo "Port $port: $(lsof -i :$port)"
 done
 
@@ -525,7 +531,7 @@ radiusforge admin rotate-secrets --confirm
 ## Version History
 
 ### v1.3.0 (Current)
-- Expanded port range to 8910-8920
+- Expanded port range to 8910-8926
 - Added versioned deployment bundles
 - Delta update support
 - Enhanced RADIUS server integration

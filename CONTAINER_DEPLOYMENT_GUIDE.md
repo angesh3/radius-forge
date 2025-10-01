@@ -37,7 +37,7 @@ The all-in-one container includes:
 - **Docker**: Version 20.10 or higher
 - **Disk Space**: 2GB minimum
 - **RAM**: 2GB minimum (4GB recommended)
-- **Ports**: 8910-8920 available
+- **Ports**: 8910-8926 available
 
 ### Installation Commands:
 
@@ -93,7 +93,7 @@ services:
     image: radiusforge:1.4.0-allinone
     container_name: radiusforge
     ports:
-      - "8910-8920:8910-8920"
+      - "8910-8926:8910-8926"
     environment:
       - RADIUS_SERVER_TYPE=access-manager
       - RADIUS_PRIMARY_HOST=192.168.1.10
@@ -125,7 +125,7 @@ docker-compose logs
 docker run -d \
   --name radiusforge \
   --restart unless-stopped \
-  -p 8910-8920:8910-8920 \
+  -p 8910-8926:8910-8926 \
   -v $(pwd)/data:/opt/radiusforge/data \
   -v $(pwd)/logs:/opt/radiusforge/logs \
   -v $(pwd)/config:/opt/radiusforge/config \
@@ -260,7 +260,7 @@ tar -xzf backup-20240814.tar.gz
 
 ```bash
 # Check if ports are in use
-lsof -i :8910-8920
+lsof -i :8910-8926
 
 # Check Docker logs
 docker logs radiusforge
@@ -327,7 +327,7 @@ curl http://localhost:8917/health
   "status": "healthy",
   "version": "1.4.0",
   "container": "docker",
-  "ports": "8910-8920"
+  "ports": "8910-8926"
 }
 ```
 
@@ -436,7 +436,7 @@ curl -fsSL https://radiusforge.example.com/install.sh | sh
 
 ### All-in-one Docker Command:
 ```bash
-docker run -d --name radiusforge -p 8910-8920:8910-8920 radiusforge:1.4.0-allinone
+docker run -d --name radiusforge -p 8910-8926:8910-8926 radiusforge:1.4.0-allinone
 ```
 
 ### Quick Health Check:
@@ -460,7 +460,7 @@ docker exec radiusforge tail -f /opt/radiusforge/logs/*.log
 
 **Version**: 1.4.0  
 **Container Image**: radiusforge:1.4.0-allinone  
-**Port Range**: 8910-8920  
+**Port Range**: 8910-8926  
 **Build Date**: August 2024  
 
 © 2024 RadiusForge - Enterprise AAA Testing Platform

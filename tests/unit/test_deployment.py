@@ -41,7 +41,7 @@ class TestDeploymentValidation:
         
         # Test all ports are in valid range
         for service, port in expected_ports.items():
-            assert 8910 <= port <= 8920, f"Port {port} for {service} outside valid range"
+            assert 8910 <= port <= 8926, f"Port {port} for {service} outside valid range"
         
         # Test no duplicate ports
         ports_list = list(expected_ports.values())
@@ -142,7 +142,7 @@ class TestDeploymentValidation:
         assert len(sample_manifest["ports"]) == 11, "Should have 11 ports configured"
         for port_name, port_value in sample_manifest["ports"].items():
             assert isinstance(port_value, int), f"Port {port_name} should be integer"
-            assert 8910 <= port_value <= 8920, f"Port {port_name}={port_value} outside valid range"
+            assert 8910 <= port_value <= 8926, f"Port {port_name}={port_value} outside valid range"
     
     def test_delta_bundle_calculation(self):
         """Test delta bundle calculation logic"""
@@ -271,7 +271,7 @@ class TestDeploymentValidation:
         # Mock installation script content
         install_script_content = """#!/bin/bash
 # RadiusForge Installation Script
-check_ports() { echo "checking ports 8910-8920"; }
+check_ports() { echo "checking ports 8910-8926"; }
 install_dependencies() { echo "installing dependencies"; }
 setup_user() { echo "creating radiusforge user"; }
 install_systemd_services() { echo "setting up services"; }
@@ -383,8 +383,8 @@ class TestDeploymentIntegration:
                 used_ports.add(expected_port)
                 base_port += 1
         
-        # Should use exactly ports 8910-8920
-        assert used_ports == set(range(8910, 8921)), "Should use exactly ports 8910-8920"
+        # Should use exactly ports 8910-8926
+        assert used_ports == set(range(8910, 8927)), "Should use exactly ports 8910-8926"
     
     def test_configuration_migration(self):
         """Test configuration migration between versions"""

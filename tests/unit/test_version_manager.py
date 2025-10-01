@@ -134,7 +134,7 @@ class TestVersionManager:
         assert commit == "abc123de"  # First 8 characters
     
     def test_port_configuration_v130(self, version_manager):
-        """Test that port configuration uses new v1.3.0 range (8910-8920)"""
+        """Test that port configuration uses new v1.3.0 range (8910-8926)"""
         manifest = version_manager.create_manifest("1.3.0", "full")
         
         ports = manifest["ports"]
@@ -149,7 +149,13 @@ class TestVersionManager:
             "health_check": 8917,
             "admin_api": 8918,
             "backup_service": 8919,
-            "reserved": 8920
+            "reserved": 8920,
+            "monitoring": 8921,
+            "logging": 8922,
+            "analytics": 8923,
+            "reporting": 8924,
+            "integration": 8925,
+            "future_use": 8926
         }
         
         # Verify all expected ports are present
@@ -159,10 +165,10 @@ class TestVersionManager:
         
         # Verify all ports are in the correct range
         for port_name, port_value in ports.items():
-            assert 8910 <= port_value <= 8920, f"Port {port_name}={port_value} outside range 8910-8920"
+            assert 8910 <= port_value <= 8926, f"Port {port_name}={port_value} outside range 8910-8926"
         
-        # Verify we have exactly 11 ports (8910-8920 inclusive)
-        assert len(ports) == 11, f"Expected 11 ports, got {len(ports)}"
+        # Verify we have exactly 17 ports (8910-8926 inclusive)
+        assert len(ports) == 17, f"Expected 17 ports, got {len(ports)}"
     
     def test_delta_bundle_creation(self, version_manager, temp_dir):
         """Test delta bundle creation logic"""
@@ -258,7 +264,7 @@ class TestVersionManager:
         
         # All ports should be in secure range
         for port_name, port in ports.items():
-            assert 8910 <= port <= 8920, f"Port {port_name}={port} outside secure range"
+            assert 8910 <= port <= 8926, f"Port {port_name}={port} outside secure range"
         
         # Test that sensitive ports are properly configured
         assert ports["admin_api"] == 8918, "Admin API should be on restricted port"

@@ -2,7 +2,7 @@
 
 ## Executive Summary
 
-This security analysis evaluates the security implications of RadiusForge v1.3.0 deployment lifecycle changes, focusing on expanded port range (8910-8920), bundle management system, and deployment mechanisms.
+This security analysis evaluates the security implications of RadiusForge v1.3.0 deployment lifecycle changes, focusing on expanded port range (8910-8926), bundle management system, and deployment mechanisms.
 
 **Overall Risk Assessment**: MEDIUM
 - **High Risk**: 2 findings
@@ -14,12 +14,12 @@ This security analysis evaluates the security implications of RadiusForge v1.3.0
 
 ### 1. Expanded Attack Surface (HIGH RISK)
 
-**Finding**: Port range expansion from 8910-8919 to 8910-8920 increases attack surface.
+**Finding**: Port range expansion from 8910-8919 to 8910-8926 increases attack surface.
 
 **Details**:
-- 11 total ports now exposed (previously 5 active)
-- New services: RADIUS test (8913), TACACS+ test (8914), metrics export (8916), health check (8917), admin API (8918), backup service (8919)
-- Reserved port (8920) for future expansion
+- 17 total ports now exposed (previously 5 active)
+- New services: RADIUS test (8913), TACACS+ test (8914), metrics export (8916), health check (8917), admin API (8918), backup service (8919), pxGrid client (8921), connectivity probe (8922), WebSocket telemetry (8923), log aggregator (8924), monitoring dashboard (8925)
+- Reserved port (8926) for future expansion
 
 **Impact**: 
 - Increased network exposure
@@ -193,7 +193,7 @@ This security analysis evaluates the security implications of RadiusForge v1.3.0
 **Finding**: Installation script configures basic firewall rules.
 
 **Details**:
-- Opens ports 8910-8920 on local firewall
+- Opens ports 8910-8926 on local firewall
 - No advanced filtering rules
 - Basic iptables/ufw configuration
 

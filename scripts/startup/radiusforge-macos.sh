@@ -174,7 +174,7 @@ class HealthHandler(http.server.SimpleHTTPRequestHandler):
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            status = {'status': 'healthy', 'version': '1.3.1', 'ports': '8910-8920'}
+            status = {'status': 'healthy', 'version': '1.3.1', 'ports': '8910-8926'}
             self.wfile.write(json.dumps(status).encode())
         else:
             self.send_response(404)
@@ -197,7 +197,7 @@ with socketserver.TCPServer(('', 8917), HealthHandler) as httpd:
     echo "  📚 API Docs:      http://localhost:8910/docs"
     echo "  💚 Health Check:  http://localhost:8917/health"
     echo ""
-    echo "  Port Range: 8910-8920"
+    echo "  Port Range: 8910-8926"
     echo "  Logs: $LOG_DIR/"
     echo ""
 }
