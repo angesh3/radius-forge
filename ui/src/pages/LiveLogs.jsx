@@ -54,39 +54,53 @@ const LiveLogs = () => {
   const logContainerRef = useRef(null);
   const logCountRef = useRef(0);
 
-  // Mock log data for demonstration
-  const mockLogs = [
-    { id: 1, timestamp: new Date(), level: 'INFO', source: 'RADIUS', message: 'Authentication request received from client 192.168.1.50', details: 'User: test@domain.com, NAS: 10.0.1.1' },
-    { id: 2, timestamp: new Date(Date.now() - 1000), level: 'SUCCESS', source: 'RADIUS', message: 'Authentication successful for user test@domain.com', details: 'Session ID: 12345, VLAN: 100' },
-    { id: 3, timestamp: new Date(Date.now() - 2000), level: 'WARNING', source: 'SYSTEM', message: 'High CPU usage detected: 85%', details: 'Process: radius-handler, PID: 1234' },
-    { id: 4, timestamp: new Date(Date.now() - 3000), level: 'ERROR', source: 'TACACS', message: 'Connection timeout to TACACS server 192.168.1.101', details: 'Retry attempt 3/3 failed' },
-    { id: 5, timestamp: new Date(Date.now() - 4000), level: 'INFO', source: 'SYSLOG', message: 'Syslog message received from device 10.0.1.50', details: 'Facility: local0, Severity: notice' },
-  ];
 
   useEffect(() => {
-    // Initialize with some mock logs
-    setLogs(mockLogs);
-    setFilteredLogs(mockLogs);
+    // Initialize with empty logs - real logs will come from WebSocket
+    setLogs([]);
+    setFilteredLogs([]);
   }, []);
 
+  // Remove mock logs - connect to real WebSocket
   useEffect(() => {
-    let interval;
+    let ws = null;
+    
     if (isStreaming && !isPaused) {
-      setConnectionStatus('connected');
-      interval = setInterval(() => {
-        // Simulate new log entries
-        const newLog = generateMockLog();
-        setLogs(prevLogs => {
-          const updatedLogs = [newLog, ...prevLogs].slice(0, maxLogs);
-          return updatedLogs;
-        });
-      }, 2000 + Math.random() * 3000); // Random interval between 2-5 seconds
+      setConnectionStatus('connecting');
+      ws = new WebSocket(`ws://localhost:8910/ws/logs`);
+      
+      ws.onopen = () => {
+        setConnectionStatus('connected');
+      };
+      
+      ws.onmessage = (event) => {
+        try {
+          const logEntry = JSON.parse(event.data);
+          setLogs(prevLogs => {
+            const updatedLogs = [logEntry, ...prevLogs].slice(0, maxLogs);
+            return updatedLogs;
+          });
+        } catch (error) {
+          console.error('Error parsing log message:', error);
+        }
+      };
+      
+      ws.onclose = () => {
+        setConnectionStatus('disconnected');
+      };
+      
+      ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+        setConnectionStatus('error');
+      };
     } else {
       setConnectionStatus(isStreaming ? 'paused' : 'disconnected');
     }
 
     return () => {
-      if (interval) clearInterval(interval);
+      if (ws) {
+        ws.close();
+      }
     };
   }, [isStreaming, isPaused, maxLogs]);
 
@@ -116,33 +130,6 @@ const LiveLogs = () => {
     }
   }, [filteredLogs, autoScroll]);
 
-  const generateMockLog = () => {
-    const levels = ['INFO', 'SUCCESS', 'WARNING', 'ERROR'];
-    const sources = ['RADIUS', 'TACACS', 'SYSLOG', 'SYSTEM'];
-    const messages = [
-      'Authentication request received',
-      'User login successful',
-      'Connection established',
-      'Certificate validation completed',
-      'Session terminated',
-      'High latency detected',
-      'Memory usage warning',
-      'Database connection lost',
-      'Backup completed successfully',
-      'Configuration updated',
-    ];
-
-    logCountRef.current += 1;
-    
-    return {
-      id: Date.now() + logCountRef.current,
-      timestamp: new Date(),
-      level: levels[Math.floor(Math.random() * levels.length)],
-      source: sources[Math.floor(Math.random() * sources.length)],
-      message: messages[Math.floor(Math.random() * messages.length)],
-      details: `Generated log entry #${logCountRef.current}`,
-    };
-  };
 
   const handleStartStreaming = () => {
     setIsStreaming(true);

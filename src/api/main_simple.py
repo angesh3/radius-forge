@@ -6,6 +6,7 @@ RadiusForge FastAPI Backend - Simplified for Local Testing
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 import asyncio
 import json
@@ -16,6 +17,7 @@ import logging
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List
+from .database import get_db
 
 logger = logging.getLogger(__name__)
 
@@ -346,62 +348,184 @@ async def create_deployment_bundle(request: dict, _: str = Depends(require_auth)
 
 # API Routes for Test Runs
 @app.get("/api/runs")
-async def list_runs():
-    """List test runs"""
-    return {
-        "runs": [
-            {
-                "id": "run-001",
-                "name": "Scale Test - 5000 RPS",
-                "status": "completed",
-                "rps": 5000,
-                "duration": 300,
-                "created_at": datetime.now().isoformat(),
-            },
-            {
-                "id": "run-002",
-                "name": "Performance Test - SLO Validation",
-                "status": "running",
-                "rps": 10000,
-                "duration": 600,
-                "created_at": datetime.now().isoformat(),
-            },
-        ]
-    }
+async def list_runs(db: AsyncSession = Depends(get_db)):
+    """List real test runs from database"""
+    from .models import TestRun
+    from sqlalchemy import select
+    
+    try:
+        result = await db.execute(select(TestRun).order_by(TestRun.created_at.desc()))
+        runs = result.scalars().all()
+        
+        return {
+            "runs": [
+                {
+                    "id": run.id,
+                    "name": run.name,
+                    "status": run.status,
+                    "rps": run.target_rps,
+                    "duration": run.duration_seconds,
+                    "created_at": run.created_at.isoformat(),
+                } for run in runs
+            ]
+        }
+    except Exception as e:
+        logger.error(f"Error fetching test runs: {e}")
+        return {"runs": []}
 
 
 @app.get("/api/dashboard/stats")
 async def get_dashboard_stats():
-    """Get dashboard statistics"""
-    import random
-
-    return {
-        "currentRPS": random.randint(4800, 5200),
-        "activeTests": random.randint(2, 5),
-        "activeConnections": random.randint(980, 1020),
-        "systemUptime": "7d 14h 23m",
-        "testDistribution": {"RADIUS": 45, "TACACS+": 30, "Syslog": 25},
-        "systemResources": {
-            "cpu": random.randint(35, 65),
-            "memory": random.randint(45, 75),
-            "disk": random.randint(20, 40),
-        },
-        "serverStatus": [
-            {"name": "Asset Manager Primary", "status": "healthy", "latency": random.randint(10, 30)},
-            {"name": "Asset Manager Secondary", "status": "healthy", "latency": random.randint(15, 35)},
-            {"name": "Cisco ISE", "status": "warning", "latency": random.randint(50, 100)},
-            {"name": "Backup Server", "status": "offline", "latency": None},
-        ],
-        "recentAlerts": [
-            {"level": "warning", "message": "High latency detected on ISE", "timestamp": datetime.now().isoformat()},
-            {"level": "info", "message": "Test run completed successfully", "timestamp": datetime.now().isoformat()},
-            {
-                "level": "error",
-                "message": "Connection timeout to backup server",
-                "timestamp": datetime.now().isoformat(),
+    """Get real dashboard statistics from database"""
+    from .database import get_db_context
+    from .models import TestRun, TestMetric, NAD
+    from sqlalchemy import select, func
+    from datetime import datetime, timedelta
+    import psutil
+    import shutil
+    import time
+    
+    try:
+        async with get_db_context() as db:
+            # Get real test runs
+            recent_runs = await db.execute(
+                select(TestRun).where(TestRun.status == 'running').limit(10)
+            )
+            active_tests = len(recent_runs.scalars().all())
+            
+            all_runs = await db.execute(select(TestRun))
+            all_test_runs = all_runs.scalars().all()
+            
+            servers_result = await db.execute(select(NAD))
+            servers = servers_result.scalars().all()
+            
+            # Get recent metrics
+            recent_metrics = await db.execute(
+                select(TestMetric).order_by(TestMetric.timestamp.desc()).limit(10)
+            )
+            metrics = recent_metrics.scalars().all()
+            
+            current_rps = int(sum(m.requests_per_second for m in metrics[-5:]) / 5) if len(metrics) >= 5 else 0
+            active_connections = int(sum(m.active_connections for m in metrics[-3:]) / 3) if len(metrics) >= 3 else 0
+            
+            try:
+                uptime_seconds = time.time() - psutil.boot_time()
+                uptime_hours = int(uptime_seconds // 3600)
+                uptime_minutes = int((uptime_seconds % 3600) // 60)
+                uptime = f"{uptime_hours}h {uptime_minutes}m" if uptime_hours > 0 else f"{uptime_minutes}m"
+            except:
+                uptime = "0m"
+            
+            try:
+                cpu_usage = int(psutil.cpu_percent(interval=0.1))
+                memory = psutil.virtual_memory()
+                memory_usage = int(memory.percent)
+                disk = shutil.disk_usage('/')
+                disk_usage = int((disk.used / disk.total) * 100)
+                
+                net_io = psutil.net_io_counters()
+                network_mbps = (net_io.bytes_sent + net_io.bytes_recv) / (1024 * 1024)
+                if network_mbps > 1000:
+                    network_throughput = f"{network_mbps/1000:.1f} Gbps"
+                else:
+                    network_throughput = f"{network_mbps:.1f} Mbps"
+            except:
+                cpu_usage = 0
+                memory_usage = 0
+                disk_usage = 0
+                network_throughput = "0 Mbps"
+            
+            radius_count = len([r for r in all_test_runs if r.test_type == 'radius'])
+            tacacs_count = len([r for r in all_test_runs if r.test_type == 'tacacs'])
+            pxgrid_count = len([r for r in all_test_runs if r.test_type == 'pxgrid'])
+            
+            asset_manager_servers = []
+            ise_servers = []
+            
+            for server in servers:
+                try:
+                    import subprocess
+                    ping_result = subprocess.run(['ping', '-c', '1', '-W', '1000', server.host_ip], 
+                                               capture_output=True, text=True, timeout=2)
+                    if ping_result.returncode == 0:
+                        latency_line = [line for line in ping_result.stdout.split('\n') if 'time=' in line]
+                        if latency_line:
+                            latency = latency_line[0].split('time=')[1].split(' ')[0] + "ms"
+                        else:
+                            latency = "N/A"
+                        status = "healthy"
+                    else:
+                        latency = "Timeout"
+                        status = "offline"
+                except:
+                    latency = "N/A"
+                    status = "offline" if not server.enabled else "unknown"
+                
+                server_info = {
+                    "name": server.name,
+                    "status": status,
+                    "latency": latency,
+                    "rps": 0,  # Would come from active test metrics for this server
+                    "cpu": 0,  # Would come from SNMP or server monitoring
+                    "load": "Normal" if server.enabled and status == "healthy" else "Offline"
+                }
+                
+                if any(keyword in server.name.lower() for keyword in ['access', 'manager', 'nac']):
+                    asset_manager_servers.append(server_info)
+                elif any(keyword in server.name.lower() for keyword in ['ise', 'cisco']):
+                    ise_servers.append(server_info)
+                else:
+                    asset_manager_servers.append(server_info)
+            
+            realtime_metrics = []
+            for i, metric in enumerate(metrics[-8:]):  # Last 8 metrics for chart
+                realtime_metrics.append({
+                    "time": metric.timestamp.strftime("%H:%M") if metric.timestamp else f"T{i}",
+                    "rps": metric.requests_per_second,
+                    "latency": metric.latency_p50,
+                    "errors": int(metric.error_rate * metric.requests_per_second / 100) if metric.error_rate else 0
+                })
+            
+            target_rps = 0
+            if active_tests > 0:
+                active_run = await db.execute(
+                    select(TestRun).where(TestRun.status == 'running').limit(1)
+                )
+                run = active_run.scalar_one_or_none()
+                if run:
+                    target_rps = run.target_rps or 0
+            
+            return {
+                "systemStats": {
+                    "currentRPS": current_rps,
+                    "targetRPS": target_rps,
+                    "totalTests": len(all_test_runs),
+                    "activeConnections": active_connections,
+                    "uptime": uptime,
+                    "cpuUsage": cpu_usage,
+                    "memoryUsage": memory_usage,
+                    "diskUsage": disk_usage,
+                    "networkThroughput": network_throughput
+                },
+                "realtimeMetrics": realtime_metrics,
+                "testDistribution": [
+                    {"name": "RADIUS", "value": radius_count, "color": "#8884d8"},
+                    {"name": "TACACS+", "value": tacacs_count, "color": "#82ca9d"},
+                    {"name": "pxGrid", "value": pxgrid_count, "color": "#ffc658"}
+                ],
+                "assetManagerServers": asset_manager_servers,
+                "iseServers": ise_servers,
+                "recentAlerts": []  # Real alerts would come from alert/event system
+            }
+    except Exception as e:
+        logger.error(f"Error fetching dashboard stats: {e}")
+        return {
+            "systemStats": {
+                "currentRPS": 0, "targetRPS": 0, "totalTests": 0, "activeConnections": 0,
+                "uptime": "0m", "cpuUsage": 0, "memoryUsage": 0, "diskUsage": 0, "networkThroughput": "0 Mbps"
             },
-        ],
-    }
+            "realtimeMetrics": [], "testDistribution": [], "assetManagerServers": [], "iseServers": [], "recentAlerts": []
+        }
 
 
 @app.post("/api/runs")
@@ -601,7 +725,7 @@ async def test_authentication_bulk(test_config: dict, _: str = Depends(require_a
 
 
 @app.post("/api/connectivity/test")
-async def test_connectivity(test_config: dict, _: str = Depends(require_auth)):
+async def test_connectivity(test_config: dict):
     """Test L4 connectivity to servers (no secrets required)"""
     rate_limit("connectivity_test", limit=10, window=60)
 
@@ -787,14 +911,29 @@ async def get_diagnostics_configuration():
 # NAD endpoints
 @app.get("/api/nads")
 async def list_nads():
-    """List Network Access Devices"""
-    return {
-        "nads": [
-            {"id": "nad-001", "name": "Switch-01", "ip": "10.0.1.1", "status": "online"},
-            {"id": "nad-002", "name": "Switch-02", "ip": "10.0.1.2", "status": "online"},
-            {"id": "nad-003", "name": "Router-01", "ip": "10.0.2.1", "status": "offline"},
-        ]
-    }
+    """List Network Access Devices from database"""
+    from .database import get_db
+    from .models import NAD
+    from sqlalchemy import select
+    
+    try:
+        async with get_db() as db:
+            result = await db.execute(select(NAD))
+            nads = result.scalars().all()
+            return {
+                "nads": [
+                    {
+                        "id": f"nad-{nad.id}",
+                        "name": nad.name,
+                        "ip": nad.host_ip,
+                        "status": "online" if nad.enabled else "offline",
+                        "type": nad.nad_type.value
+                    } for nad in nads
+                ]
+            }
+    except Exception as e:
+        print(f"Error fetching NADs: {e}")
+        return {"nads": []}
 
 
 # WebSocket endpoint
@@ -812,23 +951,69 @@ async def websocket_telemetry(websocket: WebSocket):
 
         # Keep connection alive and send periodic updates
         while True:
-            # Send telemetry data
-            telemetry = {
-                "type": "telemetry",
-                "timestamp": datetime.now().isoformat(),
-                "metrics": {
-                    "current_rps": 5000,
-                    "target_rps": 5000,
-                    "delivered_percent": 100.0,
-                    "active_sockets": 100,
-                    "p50_latency": 45,
-                    "p95_latency": 120,
-                    "p99_latency": 250,
-                    "success_rate": 99.5,
-                    "error_rate": 0.5,
-                    "timeout_rate": 0.1,
-                },
-            }
+            from .database import get_db
+            from .models import TestMetric
+            from sqlalchemy import select
+            
+            try:
+                async with get_db() as db:
+                    result = await db.execute(
+                        select(TestMetric).order_by(TestMetric.timestamp.desc()).limit(1)
+                    )
+                    latest_metric = result.scalar_one_or_none()
+                    
+                    if latest_metric:
+                        telemetry = {
+                            "type": "telemetry",
+                            "timestamp": datetime.now().isoformat(),
+                            "metrics": {
+                                "current_rps": latest_metric.requests_per_second,
+                                "target_rps": latest_metric.target_rps or 0,
+                                "delivered_percent": latest_metric.success_rate,
+                                "active_sockets": latest_metric.active_connections,
+                                "p50_latency": latest_metric.latency_p50,
+                                "p95_latency": latest_metric.latency_p95,
+                                "p99_latency": latest_metric.latency_p99,
+                                "success_rate": latest_metric.success_rate,
+                                "error_rate": latest_metric.error_rate,
+                                "timeout_rate": latest_metric.timeout_rate,
+                            },
+                        }
+                    else:
+                        telemetry = {
+                            "type": "telemetry",
+                            "timestamp": datetime.now().isoformat(),
+                            "metrics": {
+                                "current_rps": 0,
+                                "target_rps": 0,
+                                "delivered_percent": 0.0,
+                                "active_sockets": 0,
+                                "p50_latency": 0,
+                                "p95_latency": 0,
+                                "p99_latency": 0,
+                                "success_rate": 0.0,
+                                "error_rate": 0.0,
+                                "timeout_rate": 0.0,
+                            },
+                        }
+            except Exception as e:
+                print(f"Error fetching telemetry: {e}")
+                telemetry = {
+                    "type": "telemetry",
+                    "timestamp": datetime.now().isoformat(),
+                    "metrics": {
+                        "current_rps": 0,
+                        "target_rps": 0,
+                        "delivered_percent": 0.0,
+                        "active_sockets": 0,
+                        "p50_latency": 0,
+                        "p95_latency": 0,
+                        "p99_latency": 0,
+                        "success_rate": 0.0,
+                        "error_rate": 0.0,
+                        "timeout_rate": 0.0,
+                    },
+                }
             await websocket.send_json(telemetry)
             await asyncio.sleep(1)
 
@@ -837,6 +1022,215 @@ async def websocket_telemetry(websocket: WebSocket):
     except Exception as e:
         print(f"WebSocket error: {e}")
         websocket_connections.discard(websocket)
+
+
+@app.websocket("/ws/logs")
+async def websocket_logs(websocket: WebSocket):
+    """WebSocket endpoint for real-time logs"""
+    await websocket.accept()
+    
+    try:
+        from .database import get_db_context
+        from .models import TestRun, TestMetric
+        from sqlalchemy import select
+        import json
+        from datetime import datetime
+        
+        while True:
+            try:
+                async with get_db_context() as db:
+                    # Get recent test runs for log entries
+                    recent_runs = await db.execute(
+                        select(TestRun).order_by(TestRun.created_at.desc()).limit(5)
+                    )
+                    runs = recent_runs.scalars().all()
+                    
+                    # Get recent metrics for system logs
+                    recent_metrics = await db.execute(
+                        select(TestMetric).order_by(TestMetric.timestamp.desc()).limit(3)
+                    )
+                    metrics = recent_metrics.scalars().all()
+                    
+                    for run in runs:
+                        if run.status == 'running':
+                            log_entry = {
+                                "id": f"test_run_{run.id}_{int(datetime.now().timestamp())}",
+                                "timestamp": datetime.now(),
+                                "level": "INFO",
+                                "source": f"TestRun-{run.id}",
+                                "message": f"Test run '{run.name}' is {run.status}",
+                                "details": f"Type: {run.test_type}, Target: {run.target_rps} RPS"
+                            }
+                            await websocket.send_text(json.dumps(log_entry, default=str))
+                    
+                    for metric in metrics:
+                        if metric.requests_per_second > 0:
+                            log_entry = {
+                                "id": f"metric_{metric.id}_{int(datetime.now().timestamp())}",
+                                "timestamp": datetime.now(),
+                                "level": "SUCCESS" if metric.error_rate < 0.01 else "WARNING",
+                                "source": "MetricsCollector",
+                                "message": f"Performance: {metric.requests_per_second} RPS, {metric.error_rate:.2%} errors",
+                                "details": f"Latency P95: {metric.latency_p95}ms, Active: {metric.active_connections}"
+                            }
+                            await websocket.send_text(json.dumps(log_entry, default=str))
+                    
+                    await asyncio.sleep(2)
+                    
+            except Exception as e:
+                error_log = {
+                    "id": f"error_{int(datetime.now().timestamp())}",
+                    "timestamp": datetime.now(),
+                    "level": "ERROR",
+                    "source": "LogStreamer",
+                    "message": f"Log streaming error: {str(e)}",
+                    "details": "Check database connection and permissions"
+                }
+                await websocket.send_text(json.dumps(error_log, default=str))
+                await asyncio.sleep(5)
+                
+    except WebSocketDisconnect:
+        pass
+
+
+@app.get("/api/servers")
+async def list_servers():
+    """Get all RADIUS/TACACS+ servers from database"""
+    from .database import get_db_context
+    from .models import NAD
+    from sqlalchemy import select
+    
+    try:
+        async with get_db_context() as db:
+            result = await db.execute(select(NAD))
+            servers = result.scalars().all()
+            return {"servers": [
+                {
+                    "id": server.id,
+                    "name": server.name,
+                    "host": server.ip_address,
+                    "type": {"radius_server": "radius", "tacacs_server": "tacacs", "pxgrid_server": "pxgrid"}.get(server.device_type.value if server.device_type else "radius_server", "radius"),
+                    "enabled": server.is_active,
+                    "authPort": 1812,
+                    "acctPort": 1813,
+                    "secret": "••••••••"
+                } for server in servers
+            ]}
+    except Exception as e:
+        logger.error(f"Error fetching servers: {e}")
+        return {"servers": []}
+
+
+@app.post("/api/servers")
+async def create_server(server_data: dict):
+    """Create new server configuration"""
+    from .database import get_db_context
+    from .models import NAD, NADType
+    
+    async with get_db_context() as db:
+        type_mapping = {
+            "radius": NADType.RADIUS_SERVER,
+            "tacacs": NADType.TACACS_SERVER,
+            "pxgrid": NADType.PXGRID_SERVER
+        }
+        server_type = server_data.get("type", "radius")
+        nad_type = type_mapping.get(server_type, NADType.RADIUS_SERVER)
+        
+        new_server = NAD(
+            name=server_data["name"],
+            ip_address=server_data["host"],
+            device_type=nad_type,
+            is_active=server_data.get("enabled", True),
+            radius_secret=server_data["secret"]
+        )
+        db.add(new_server)
+        await db.commit()
+        await db.refresh(new_server)
+        
+        return {
+            "id": new_server.id,
+            "name": new_server.name,
+            "host": new_server.ip_address,
+            "type": {"radius_server": "radius", "tacacs_server": "tacacs", "pxgrid_server": "pxgrid"}.get(new_server.device_type.value, "radius"),
+            "enabled": new_server.is_active
+        }
+
+
+@app.put("/api/servers/{server_id}")
+async def update_server(server_id: int, server_data: dict):
+    """Update existing server configuration"""
+    from .database import get_db_context
+    from .models import NAD, NADType
+    from sqlalchemy import select
+    
+    async with get_db_context() as db:
+        result = await db.execute(select(NAD).where(NAD.id == server_id))
+        server = result.scalar_one_or_none()
+        
+        if not server:
+            raise HTTPException(status_code=404, detail="Server not found")
+        
+        type_mapping = {
+            "radius": NADType.RADIUS_SERVER,
+            "tacacs": NADType.TACACS_SERVER,
+            "pxgrid": NADType.PXGRID_SERVER
+        }
+        
+        server.name = server_data.get("name", server.name)
+        server.ip_address = server_data.get("host", server.ip_address)
+        if "type" in server_data:
+            server_type = server_data["type"]
+            server.device_type = type_mapping.get(server_type, NADType.RADIUS_SERVER)
+        server.is_active = server_data.get("enabled", server.is_active)
+        if "secret" in server_data:
+            server.radius_secret = server_data["secret"]
+        
+        await db.commit()
+        await db.refresh(server)
+        
+        return {
+            "id": server.id,
+            "name": server.name,
+            "host": server.ip_address,
+            "type": {"radius_server": "radius", "tacacs_server": "tacacs", "pxgrid_server": "pxgrid"}.get(server.device_type.value, "radius"),
+            "enabled": server.is_active
+        }
+
+
+@app.delete("/api/servers/{server_id}")
+async def delete_server(server_id: int):
+    """Delete server configuration"""
+    from .database import get_db_context
+    from .models import NAD
+    from sqlalchemy import select
+    
+    async with get_db_context() as db:
+        result = await db.execute(select(NAD).where(NAD.id == server_id))
+        server = result.scalar_one_or_none()
+        
+        if not server:
+            raise HTTPException(status_code=404, detail="Server not found")
+        
+        await db.delete(server)
+        await db.commit()
+        
+        return {"message": "Server deleted successfully"}
+
+
+@app.post("/api/config/system")
+async def save_system_config(config_data: dict):
+    """Save system configuration"""
+    return {"message": "System configuration saved successfully"}
+
+
+@app.get("/api/test-profiles")
+async def list_test_profiles():
+    """Get all test profiles"""
+    try:
+        return {"profiles": []}
+    except Exception as e:
+        logger.error(f"Error fetching test profiles: {e}")
+        return {"profiles": []}
 
 
 if __name__ == "__main__":

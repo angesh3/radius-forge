@@ -48,83 +48,96 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(false);
   const [lastUpdated, setLastUpdated] = useState(new Date());
 
-  // Mock data for demonstration
   const [systemStats, setSystemStats] = useState({
-    currentRPS: 5247,
-    targetRPS: 5000,
-    totalTests: 42,
-    activeConnections: 1284,
-    uptime: '28d 14h 32m',
-    cpuUsage: 42,
-    memoryUsage: 67,
-    diskUsage: 23,
-    networkThroughput: '4.8 Gbps'
+    currentRPS: 0,
+    targetRPS: 0,
+    totalTests: 0,
+    activeConnections: 0,
+    uptime: '0m',
+    cpuUsage: 0,
+    memoryUsage: 0,
+    diskUsage: 0,
+    networkThroughput: '0 Gbps'
   });
 
-  const [realtimeMetrics, setRealtimeMetrics] = useState([
-    { time: '10:00', rps: 100, latency: 15, errors: 0 },
-    { time: '10:05', rps: 200, latency: 18, errors: 0 },
-    { time: '10:10', rps: 500, latency: 22, errors: 1 },
-    { time: '10:15', rps: 1000, latency: 28, errors: 2 },
-    { time: '10:20', rps: 2000, latency: 35, errors: 3 },
-    { time: '10:25', rps: 3500, latency: 42, errors: 4 },
-    { time: '10:30', rps: 5000, latency: 48, errors: 5 },
-    { time: '10:35', rps: 5247, latency: 52, errors: 6 },
-  ]);
+  const [realtimeMetrics, setRealtimeMetrics] = useState([]);
 
-  const [testDistribution, setTestDistribution] = useState([
-    { name: 'EAP-TLS', value: 35, color: '#1565C0' },
-    { name: 'MAB', value: 30, color: '#2E7D32' },
-    { name: '802.1X', value: 20, color: '#F57C00' },
-    { name: 'PEAP', value: 10, color: '#7B1FA2' },
-    { name: 'Others', value: 5, color: '#757575' },
-  ]);
+  const [testDistribution, setTestDistribution] = useState([]);
 
-  const [recentAlerts, setRecentAlerts] = useState([
-    { id: 1, type: 'success', message: 'Asset Manager Primary - Scale test successful at 5000 RPS', time: '2 min ago' },
-    { id: 2, type: 'info', message: 'Asset Manager Secondary - Configuration sync completed', time: '15 min ago' },
-    { id: 3, type: 'warning', message: 'ISE Integration - High latency on pxGrid connection', time: '45 min ago' },
-    { id: 4, type: 'info', message: 'MAB authentication test profile created for 802.1X switches', time: '1 hour ago' },
-  ]);
+  const [recentAlerts, setRecentAlerts] = useState([]);
 
-  const [assetManagerServers, setAssetManagerServers] = useState([
-    { name: 'Asset Manager Primary', status: 'healthy', latency: '12ms', rps: 3247, cpu: 38, load: 'Normal' },
-    { name: 'Asset Manager Secondary', status: 'healthy', latency: '15ms', rps: 2000, cpu: 35, load: 'Normal' },
-    { name: 'Asset Manager DR', status: 'standby', latency: '45ms', rps: 0, cpu: 12, load: 'Standby' },
-  ]);
+  const [assetManagerServers, setAssetManagerServers] = useState([]);
 
-  const [iseServers, setIseServers] = useState([
-    { name: 'ISE PAN', status: 'warning', latency: '85ms', rps: 450, cpu: 65, load: 'High' },
-    { name: 'ISE PSN-1', status: 'healthy', latency: '32ms', rps: 280, cpu: 45, load: 'Normal' },
-  ]);
+  const [iseServers, setIseServers] = useState([]);
 
-  const [scalePoints] = useState([
-    { scale: 100, p95: 12, p99: 18, success: 100 },
-    { scale: 200, p95: 15, p99: 22, success: 100 },
-    { scale: 500, p95: 20, p99: 28, success: 99.9 },
-    { scale: 1000, p95: 25, p99: 35, success: 99.8 },
-    { scale: 1500, p95: 30, p99: 42, success: 99.7 },
-    { scale: 2000, p95: 32, p99: 45, success: 99.5 },
-    { scale: 2500, p95: 38, p99: 52, success: 99.3 },
-    { scale: 3000, p95: 42, p99: 58, success: 99.2 },
-    { scale: 5000, p95: 48, p99: 65, success: 99.0 },
-    { scale: 10000, p95: 72, p99: 95, success: 98.8 },
-    { scale: 50000, p95: 145, p99: 180, success: 97.5 },
-    { scale: 100000, p95: 220, p99: 280, success: 96.2 },
-  ]);
+  const [scalePoints, setScalePoints] = useState([]);
+
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('/api/dashboard/stats');
+        const data = await response.json();
+        if (data.systemStats) {
+          setSystemStats(data.systemStats);
+        }
+        if (data.realtimeMetrics) {
+          setRealtimeMetrics(data.realtimeMetrics);
+        }
+        if (data.testDistribution) {
+          setTestDistribution(data.testDistribution);
+        }
+        if (data.recentAlerts) {
+          setRecentAlerts(data.recentAlerts);
+        }
+        if (data.assetManagerServers) {
+          setAssetManagerServers(data.assetManagerServers);
+        }
+        if (data.iseServers) {
+          setIseServers(data.iseServers);
+        }
+        setLastUpdated(new Date());
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+      }
+    };
+
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleRefresh = () => {
     setLoading(true);
-    setTimeout(() => {
-      setLastUpdated(new Date());
-      // Update metrics with slight variations
-      setSystemStats(prev => ({
-        ...prev,
-        currentRPS: prev.currentRPS + Math.floor(Math.random() * 200 - 100),
-        activeConnections: prev.activeConnections + Math.floor(Math.random() * 50 - 25),
-      }));
-      setLoading(false);
-    }, 1000);
+    const fetchDashboardData = async () => {
+      try {
+        const response = await fetch('/api/dashboard/stats');
+        const data = await response.json();
+        if (data.systemStats) {
+          setSystemStats(data.systemStats);
+        }
+        if (data.realtimeMetrics) {
+          setRealtimeMetrics(data.realtimeMetrics);
+        }
+        if (data.testDistribution) {
+          setTestDistribution(data.testDistribution);
+        }
+        if (data.recentAlerts) {
+          setRecentAlerts(data.recentAlerts);
+        }
+        if (data.assetManagerServers) {
+          setAssetManagerServers(data.assetManagerServers);
+        }
+        if (data.iseServers) {
+          setIseServers(data.iseServers);
+        }
+        setLastUpdated(new Date());
+        setLoading(false);
+      } catch (error) {
+        console.error('Failed to fetch dashboard data:', error);
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
   };
 
   const getStatusIcon = (status) => {
@@ -298,52 +311,64 @@ const Dashboard = () => {
                 <Chip label="PRIMARY TARGET" size="small" color="primary" sx={{ ml: 'auto' }} />
               </Box>
               <List>
-                {assetManagerServers.map((server, index) => (
-                  <React.Fragment key={index}>
-                    <ListItem sx={{ px: 0 }}>
-                      <ListItemIcon sx={{ minWidth: 32 }}>
-                        {getStatusIcon(server.status)}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                              {server.name}
-                            </Typography>
-                            <Chip
-                              label={server.status.toUpperCase()}
-                              size="small"
-                              color={getStatusColor(server.status)}
-                              variant="outlined"
-                              sx={{ height: 20 }}
-                            />
-                          </Box>
-                        }
-                        secondary={
-                          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                            <Grid item xs={3}>
-                              <Typography variant="caption" color="text.secondary">Latency</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.latency}</Typography>
+                {assetManagerServers && assetManagerServers.length > 0 ? (
+                  assetManagerServers.map((server, index) => (
+                    <React.Fragment key={server.id || index}>
+                      <ListItem sx={{ px: 0 }}>
+                        <ListItemIcon sx={{ minWidth: 32 }}>
+                          {getStatusIcon(server.status || 'healthy')}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                {server.name || 'Unknown Server'}
+                              </Typography>
+                              <Chip
+                                label={(server.status || 'healthy').toUpperCase()}
+                                size="small"
+                                color={getStatusColor(server.status || 'healthy')}
+                                variant="outlined"
+                                sx={{ height: 20 }}
+                              />
+                            </Box>
+                          }
+                          secondary={
+                            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                              <Grid item xs={3}>
+                                <Typography variant="caption" color="text.secondary">Latency</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.latency || '0ms'}</Typography>
+                              </Grid>
+                              <Grid item xs={3}>
+                                <Typography variant="caption" color="text.secondary">RPS</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatNumber(server.rps || 0)}</Typography>
+                              </Grid>
+                              <Grid item xs={3}>
+                                <Typography variant="caption" color="text.secondary">CPU</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.cpu || 0}%</Typography>
+                              </Grid>
+                              <Grid item xs={3}>
+                                <Typography variant="caption" color="text.secondary">Load</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.load || '0.0'}</Typography>
+                              </Grid>
                             </Grid>
-                            <Grid item xs={3}>
-                              <Typography variant="caption" color="text.secondary">RPS</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatNumber(server.rps)}</Typography>
-                            </Grid>
-                            <Grid item xs={3}>
-                              <Typography variant="caption" color="text.secondary">CPU</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.cpu}%</Typography>
-                            </Grid>
-                            <Grid item xs={3}>
-                              <Typography variant="caption" color="text.secondary">Load</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.load}</Typography>
-                            </Grid>
-                          </Grid>
-                        }
-                      />
-                    </ListItem>
-                    {index < assetManagerServers.length - 1 && <Divider />}
-                  </React.Fragment>
-                ))}
+                          }
+                        />
+                      </ListItem>
+                      {index < assetManagerServers.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <ListItem sx={{ px: 0 }}>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2" color="text.secondary">
+                          No Access Manager servers configured
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                )}
               </List>
             </CardContent>
           </Card>
@@ -360,52 +385,64 @@ const Dashboard = () => {
                 <Chip label="OPTIONAL" size="small" variant="outlined" sx={{ ml: 'auto' }} />
               </Box>
               <List>
-                {iseServers.map((server, index) => (
-                  <React.Fragment key={index}>
-                    <ListItem sx={{ px: 0 }}>
-                      <ListItemIcon sx={{ minWidth: 32 }}>
-                        {getStatusIcon(server.status)}
-                      </ListItemIcon>
-                      <ListItemText
-                        primary={
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                              {server.name}
-                            </Typography>
-                            <Chip
-                              label={server.status.toUpperCase()}
-                              size="small"
-                              color={getStatusColor(server.status)}
-                              variant="outlined"
-                              sx={{ height: 20 }}
-                            />
-                          </Box>
-                        }
-                        secondary={
-                          <Grid container spacing={2} sx={{ mt: 0.5 }}>
-                            <Grid item xs={3}>
-                              <Typography variant="caption" color="text.secondary">Latency</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.latency}</Typography>
+                {iseServers && iseServers.length > 0 ? (
+                  iseServers.map((server, index) => (
+                    <React.Fragment key={server.id || index}>
+                      <ListItem sx={{ px: 0 }}>
+                        <ListItemIcon sx={{ minWidth: 32 }}>
+                          {getStatusIcon(server.status || 'standby')}
+                        </ListItemIcon>
+                        <ListItemText
+                          primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                                {server.name || 'Unknown ISE Server'}
+                              </Typography>
+                              <Chip
+                                label={(server.status || 'standby').toUpperCase()}
+                                size="small"
+                                color={getStatusColor(server.status || 'standby')}
+                                variant="outlined"
+                                sx={{ height: 20 }}
+                              />
+                            </Box>
+                          }
+                          secondary={
+                            <Grid container spacing={2} sx={{ mt: 0.5 }}>
+                              <Grid item xs={3}>
+                                <Typography variant="caption" color="text.secondary">Latency</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.latency || '0ms'}</Typography>
+                              </Grid>
+                              <Grid item xs={3}>
+                                <Typography variant="caption" color="text.secondary">RPS</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatNumber(server.rps || 0)}</Typography>
+                              </Grid>
+                              <Grid item xs={3}>
+                                <Typography variant="caption" color="text.secondary">CPU</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.cpu || 0}%</Typography>
+                              </Grid>
+                              <Grid item xs={3}>
+                                <Typography variant="caption" color="text.secondary">Load</Typography>
+                                <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.load || '0.0'}</Typography>
+                              </Grid>
                             </Grid>
-                            <Grid item xs={3}>
-                              <Typography variant="caption" color="text.secondary">RPS</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{formatNumber(server.rps)}</Typography>
-                            </Grid>
-                            <Grid item xs={3}>
-                              <Typography variant="caption" color="text.secondary">CPU</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.cpu}%</Typography>
-                            </Grid>
-                            <Grid item xs={3}>
-                              <Typography variant="caption" color="text.secondary">Load</Typography>
-                              <Typography variant="body2" sx={{ fontWeight: 500 }}>{server.load}</Typography>
-                            </Grid>
-                          </Grid>
-                        }
-                      />
-                    </ListItem>
-                    {index < iseServers.length - 1 && <Divider />}
-                  </React.Fragment>
-                ))}
+                          }
+                        />
+                      </ListItem>
+                      {index < iseServers.length - 1 && <Divider />}
+                    </React.Fragment>
+                  ))
+                ) : (
+                  <ListItem sx={{ px: 0 }}>
+                    <ListItemText
+                      primary={
+                        <Typography variant="body2" color="text.secondary">
+                          No ISE servers configured
+                        </Typography>
+                      }
+                    />
+                  </ListItem>
+                )}
               </List>
               <Alert severity="info" sx={{ mt: 2 }}>
                 <Typography variant="body2">
@@ -678,20 +715,21 @@ const Dashboard = () => {
                 Recent Events & Activities
               </Typography>
               <Box sx={{ mt: 2 }}>
-                {recentAlerts.map((alert) => (
-                  <Alert 
-                    key={alert.id} 
-                    severity={alert.type} 
-                    sx={{ mb: 1.5 }}
-                    action={
-                      <Typography variant="caption" color="text.secondary">
-                        {alert.time}
-                      </Typography>
-                    }
-                  >
-                    {alert.message}
-                  </Alert>
-                ))}
+                {recentAlerts && recentAlerts.length > 0 ? (
+                  recentAlerts.map((alert, index) => (
+                    <Alert
+                      key={index}
+                      severity={alert.severity || 'info'}
+                      sx={{ mb: 1 }}
+                    >
+                      {alert.message || 'No message'}
+                    </Alert>
+                  ))
+                ) : (
+                  <Typography variant="body2" color="text.secondary">
+                    No recent alerts
+                  </Typography>
+                )}
               </Box>
             </CardContent>
           </Card>

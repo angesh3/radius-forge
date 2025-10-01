@@ -73,7 +73,13 @@ class VersionManager:
                 "health_check": 8917,
                 "admin_api": 8918,
                 "backup_service": 8919,
-                "reserved": 8920
+                "reserved": 8920,
+                "monitoring": 8921,
+                "logging": 8922,
+                "analytics": 8923,
+                "reporting": 8924,
+                "integration": 8925,
+                "future_use": 8926
             }
         }
         return manifest

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Grid,
@@ -65,9 +65,48 @@ const Configuration = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+
+  useEffect(() => {
+    const fetchServers = async () => {
+      try {
+        const response = await fetch('/api/servers');
+        const data = await response.json();
+        setRadiusServers(data.servers || []);
+      } catch (error) {
+        console.error('Failed to fetch servers:', error);
+      }
+    };
+
+    fetchServers();
+  }, []);
+
+  useEffect(() => {
+    const fetchTestProfiles = async () => {
+      try {
+        const response = await fetch('/api/test-profiles');
+        const data = await response.json();
+        setTestProfiles(data.profiles || []);
+      } catch (error) {
+        console.error('Failed to fetch test profiles:', error);
+      }
+    };
+
+    fetchTestProfiles();
+  }, []);
   const [integrationGuideOpen, setIntegrationGuideOpen] = useState(false);
   const [selectedGuide, setSelectedGuide] = useState('access-manager');
   const [addServerOpen, setAddServerOpen] = useState(false);
+  const [editingServer, setEditingServer] = useState(null);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [editingTestProfile, setEditingTestProfile] = useState(null);
+  const [testProfileDialogOpen, setTestProfileDialogOpen] = useState(false);
+  const [newTestProfile, setNewTestProfile] = useState({
+    name: '',
+    type: 'RADIUS',
+    rps: 100,
+    duration: 60,
+    clients: 10
+  });
   const [newServer, setNewServer] = useState({
     name: '',
     host: '',
@@ -99,95 +138,33 @@ const Configuration = () => {
   });
 
   // RADIUS Configuration State - Access Manager as default
-  const [radiusServers, setRadiusServers] = useState([
-    {
-      id: 1,
-      name: 'Access Manager Primary',
-      host: '192.168.1.10',
-      port: 1812,
-      secret: '••••••••',
-      type: 'Access Manager',
-      enabled: true,
-      authPort: 1812,
-      acctPort: 1813,
-    },
-    {
-      id: 2,
-      name: 'Access Manager Secondary',
-      host: '192.168.1.11',
-      port: 1812,
-      secret: '••••••••',
-      type: 'Access Manager',
-      enabled: true,
-      authPort: 1812,
-      acctPort: 1813,
-    },
-    {
-      id: 3,
-      name: 'Access Manager DR',
-      host: '192.168.1.12',
-      port: 1812,
-      secret: '••••••••',
-      type: 'Access Manager',
-      enabled: false,
-      authPort: 1812,
-      acctPort: 1813,
-    },
-  ]);
+  const [radiusServers, setRadiusServers] = useState([]);
+  const [testProfiles, setTestProfiles] = useState([]);
 
-  // Test Profiles State with MAB and 802.1X
-  const [testProfiles, setTestProfiles] = useState([
-    {
-      id: 1,
-      name: 'EAP-TLS Profile',
-      type: 'RADIUS',
-      authType: 'EAP-TLS',
-      rps: 1000,
-      duration: 300,
-      clients: 50,
-      enabled: true,
-    },
-    {
-      id: 2,
-      name: 'MAB Profile',
-      type: 'RADIUS',
-      authType: 'MAB',
-      rps: 500,
-      duration: 300,
-      clients: 25,
-      enabled: true,
-    },
-    {
-      id: 3,
-      name: '802.1X Profile',
-      type: 'RADIUS',
-      authType: '802.1X',
-      rps: 2000,
-      duration: 600,
-      clients: 100,
-      enabled: true,
-    },
-    {
-      id: 4,
-      name: 'PEAP Profile',
-      type: 'RADIUS',
-      authType: 'PEAP',
-      rps: 750,
-      duration: 300,
-      clients: 40,
-      enabled: true,
-    },
-    {
-      id: 5,
-      name: 'TACACS+ Profile',
-      type: 'TACACS+',
-      authType: 'ASCII',
-      rps: 200,
-      duration: 300,
-      clients: 10,
-      enabled: false,
-    },
-  ]);
+  useEffect(() => {
+    const fetchServers = async () => {
+      try {
+        const response = await fetch('/api/servers');
+        const data = await response.json();
+        setRadiusServers(data.servers || []);
+      } catch (error) {
+        console.error('Failed to fetch servers:', error);
+      }
+    };
+
+    const fetchTestProfiles = async () => {
+      try {
+        const response = await fetch('/api/test-profiles');
+        const data = await response.json();
+        setTestProfiles(data.profiles || []);
+      } catch (error) {
+        console.error('Failed to fetch test profiles:', error);
+      }
+    };
+
+    fetchServers();
+    fetchTestProfiles();
+  }, []);
 
   const serverTypes = [
     { value: 'Access Manager', label: 'Cisco Access Manager', description: 'Primary AAA solution for enterprise authentication' },
@@ -196,13 +173,24 @@ const Configuration = () => {
     { value: 'Generic RADIUS', label: 'Generic RADIUS', description: 'Any RFC-compliant RADIUS server' },
   ];
 
-  const handleSaveConfig = () => {
+  const handleSaveConfig = async () => {
     setSaving(true);
-    setTimeout(() => {
+    try {
+      const response = await fetch('/api/config/system', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(systemConfig)
+      });
+      
+      if (response.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to save system config:', error);
+    } finally {
       setSaving(false);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    }, 1500);
+    }
   };
 
   const handleOpenIntegrationGuide = (guideType) => {
@@ -281,6 +269,127 @@ const Configuration = () => {
       console.error('Failed to create bundle:', error);
     } finally {
       setBundleCreating(false);
+    }
+  };
+
+  const handleSaveServer = async (server) => {
+    try {
+      const method = server.id ? 'PUT' : 'POST';
+      const url = server.id ? `/api/servers/${server.id}` : '/api/servers';
+      
+      const response = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(server)
+      });
+      
+      if (response.ok) {
+        const savedServer = await response.json();
+        if (server.id) {
+          setRadiusServers(prev => prev.map(s => s.id === server.id ? savedServer : s));
+        } else {
+          setRadiusServers(prev => [...prev, savedServer]);
+        }
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to save server:', error);
+    }
+  };
+
+  const handleEditServer = (server) => {
+    console.log('=== handleEditServer START ===');
+    console.log('handleEditServer called with server:', JSON.stringify(server, null, 2));
+    console.log('Current editDialogOpen state:', editDialogOpen);
+    console.log('Current editingServer state:', editingServer);
+    
+    const newServerData = {
+      name: server.name || '',
+      host: server.host || server.host_ip || '',
+      type: server.type || 'Access Manager',
+      authPort: server.authPort || 1812,
+      acctPort: server.acctPort || 1813,
+      secret: server.secret || '',
+      enabled: server.enabled !== undefined ? server.enabled : true,
+    };
+    
+    console.log('Setting newServer to:', JSON.stringify(newServerData, null, 2));
+    setNewServer(newServerData);
+    
+    console.log('Setting editingServer to:', JSON.stringify(server, null, 2));
+    setEditingServer(server);
+    
+    console.log('Setting editDialogOpen to true');
+    setEditDialogOpen(true);
+    
+    setTimeout(() => {
+      console.log('After timeout - editDialogOpen should be:', true);
+      console.log('Actual editDialogOpen state:', editDialogOpen);
+    }, 100);
+    
+    console.log('=== handleEditServer END ===');
+  };
+
+  const handleDeleteServer = async (serverId) => {
+    try {
+      const response = await fetch(`/api/servers/${serverId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        setRadiusServers(prev => prev.filter(s => s.id !== serverId));
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to delete server:', error);
+    }
+  };
+
+  const handleTestConnection = async (server) => {
+    try {
+      const response = await fetch('/api/connectivity/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          host: server.host,
+          port: server.authPort || 1812,
+          protocol: 'udp'
+        })
+      });
+      
+      const result = await response.json();
+      if (result.success) {
+        alert(`Connection successful! Latency: ${result.latency}ms`);
+      } else {
+        alert(`Connection failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Connection test failed:', error);
+      alert('Connection test failed');
+    }
+  };
+
+  const handleEditTestProfile = (profile) => {
+    setNewTestProfile({...profile});
+    setEditingTestProfile(profile);
+    setTestProfileDialogOpen(true);
+  };
+
+  const handleDeleteTestProfile = async (profileId) => {
+    try {
+      const response = await fetch(`/api/test-profiles/${profileId}`, {
+        method: 'DELETE'
+      });
+      
+      if (response.ok) {
+        setTestProfiles(prev => prev.filter(p => p.id !== profileId));
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (error) {
+      console.error('Failed to delete test profile:', error);
     }
   };
 
@@ -457,6 +566,107 @@ Add Device:
 
   return (
     <Box sx={{ p: 3 }}>
+      {/* Edit Server Dialog */}
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Server</DialogTitle>
+        <DialogContent>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                fullWidth 
+                label="Server Name" 
+                value={newServer.name}
+                onChange={(e) => setNewServer({...newServer, name: e.target.value})}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <FormControl fullWidth>
+                <InputLabel>Server Type</InputLabel>
+                <Select
+                  value={newServer.type}
+                  label="Server Type"
+                  onChange={(e) => setNewServer({...newServer, type: e.target.value})}
+                >
+                  {serverTypes.map((type) => (
+                    <MenuItem key={type.value} value={type.value}>
+                      {type.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                fullWidth 
+                label="Host/IP Address" 
+                value={newServer.host}
+                onChange={(e) => setNewServer({...newServer, host: e.target.value})}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                fullWidth 
+                label="Shared Secret" 
+                type="password"
+                value={newServer.secret}
+                onChange={(e) => setNewServer({...newServer, secret: e.target.value})}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                fullWidth 
+                label="Auth Port" 
+                type="number"
+                value={newServer.authPort}
+                onChange={(e) => setNewServer({...newServer, authPort: parseInt(e.target.value)})}
+              />
+            </Grid>
+            <Grid item xs={12} md={6}>
+              <TextField 
+                fullWidth 
+                label="Accounting Port" 
+                type="number"
+                value={newServer.acctPort}
+                onChange={(e) => setNewServer({...newServer, acctPort: parseInt(e.target.value)})}
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <FormControlLabel
+                control={
+                  <Switch 
+                    checked={newServer.enabled}
+                    onChange={(e) => setNewServer({...newServer, enabled: e.target.checked})}
+                  />
+                }
+                label="Enable Server"
+              />
+            </Grid>
+          </Grid>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+          <Button 
+            onClick={() => {
+              handleSaveServer(newServer);
+              setEditDialogOpen(false);
+              setEditingServer(null);
+              setNewServer({
+                name: '',
+                host: '',
+                type: 'Access Manager',
+                authPort: 1812,
+                acctPort: 1813,
+                secret: '',
+                enabled: true,
+              });
+            }}
+            variant="contained"
+          >
+            Save Changes
+          </Button>
+        </DialogActions>
+      </Dialog>
+
       {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
         <Box>
@@ -689,11 +899,14 @@ Add Device:
                                   </Grid>
                                   <Grid item xs={12} sm={2}>
                                     <Box sx={{ display: 'flex', gap: 1 }}>
-                                      <IconButton size="small">
+                                      <IconButton size="small" onClick={() => handleEditServer(server)}>
                                         <EditIcon fontSize="small" />
                                       </IconButton>
-                                      <IconButton size="small" color="error">
+                                      <IconButton size="small" color="error" onClick={() => handleDeleteServer(server.id)}>
                                         <DeleteIcon fontSize="small" />
+                                      </IconButton>
+                                      <IconButton size="small" color="primary" onClick={() => handleTestConnection(server)}>
+                                        <NetworkIcon fontSize="small" />
                                       </IconButton>
                                     </Box>
                                   </Grid>
@@ -895,10 +1108,10 @@ Add Device:
                                 </Grid>
                                 <Grid item xs={12} sm={4}>
                                   <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                                    <IconButton size="small">
+                                    <IconButton size="small" onClick={() => handleEditTestProfile(profile)}>
                                       <EditIcon fontSize="small" />
                                     </IconButton>
-                                    <IconButton size="small" color="error">
+                                    <IconButton size="small" color="error" onClick={() => handleDeleteTestProfile(profile.id)}>
                                       <DeleteIcon fontSize="small" />
                                     </IconButton>
                                   </Box>

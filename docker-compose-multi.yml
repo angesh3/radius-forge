@@ -1,0 +1,161 @@
+version: '3.8'
+
+# RadiusForge Multi-Container Production Deployment
+# Version: 1.4.5
+# 7 containers matching user's Windsurf screenshots
+
+services:
+  radiusforge-db-prod:
+    image: postgres:15
+    container_name: radiusforge-db-prod
+    environment:
+      POSTGRES_DB: radiusforge
+      POSTGRES_USER: radiusforge
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-RadiusForge2024DB}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U radiusforge"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  radiusforge-redis-prod:
+    image: redis:7-alpine
+    container_name: radiusforge-redis-prod
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  radiusforge-api-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: radiusforge:1.4.5-api
+    container_name: radiusforge-api-prod
+    depends_on:
+      - radiusforge-db-prod
+      - radiusforge-redis-prod
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://radiusforge:${POSTGRES_PASSWORD:-RadiusForge2024DB}@radiusforge-db-prod:5432/radiusforge
+      - REDIS_URL=redis://radiusforge-redis-prod:6379
+      - API_HOST=0.0.0.0
+      - API_PORT=8910
+      - RADIUS_SERVER_TYPE=${RADIUS_SERVER_TYPE:-access-manager}
+      - RADIUS_PRIMARY_HOST=${RADIUS_PRIMARY_HOST:-192.168.1.10}
+      - RADIUS_PRIMARY_PORT=${RADIUS_PRIMARY_PORT:-1812}
+      - RADIUS_PRIMARY_SECRET=${RADIUS_PRIMARY_SECRET:-RadiusForge2024Secret}
+    ports:
+      - "8910:8910"
+      - "8912:8912"  # WebSocket
+      - "8913:8913/udp"  # RADIUS Test
+      - "8914:8914"  # TACACS+ Test
+      - "8915:8915"  # Syslog
+      - "8916:8916"  # Metrics
+      - "8917:8917"  # Health
+      - "8918:8918"  # Admin
+      - "8919:8919"  # Backup
+      - "8920:8920"  # Reserved
+    volumes:
+      - ./data:/opt/radiusforge/data
+      - ./logs:/opt/radiusforge/logs
+      - ./config:/opt/radiusforge/config
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8917/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  radiusforge-nginx-prod:
+    image: nginx:alpine
+    container_name: radiusforge-nginx-prod
+    depends_on:
+      - radiusforge-api-prod
+    ports:
+      - "8911:8911"
+    volumes:
+      - ./ui-build:/usr/share/nginx/html
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8911/index.html"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  radiusforge-prometheus-prod:
+    image: prom/prometheus:latest
+    container_name: radiusforge-prometheus-prod
+    ports:
+      - "8922:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    restart: unless-stopped
+
+  radiusforge-grafana-prod:
+    image: grafana/grafana:latest
+    container_name: radiusforge-grafana-prod
+    depends_on:
+      - radiusforge-prometheus-prod
+    ports:
+      - "8923:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-RadiusForge2024}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    restart: unless-stopped
+
+  radiusforge-telemetry-prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: radiusforge:1.4.5-telemetry
+    container_name: radiusforge-telemetry-prod
+    depends_on:
+      - radiusforge-db-prod
+      - radiusforge-redis-prod
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://radiusforge:${POSTGRES_PASSWORD:-RadiusForge2024DB}@radiusforge-db-prod:5432/radiusforge
+      - REDIS_URL=redis://radiusforge-redis-prod:6379
+      - TELEMETRY_PORT=8921
+    ports:
+      - "8921:8921"
+      - "8924:8924"  # Reports
+      - "8925:8925"  # Analytics  
+      - "8926:8926"  # Events
+    volumes:
+      - ./data:/opt/radiusforge/data
+      - ./logs:/opt/radiusforge/logs
+    restart: unless-stopped
+    command: ["python", "-m", "src.api.telemetry_server"]
+
+volumes:
+  postgres_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  default:
+    name: radiusforge-network

@@ -4,7 +4,6 @@ from fastapi import WebSocket
 from typing import Dict, List, Set, Any, Optional
 import json
 import asyncio
-import random
 import logging
 from datetime import datetime
 import uuid
@@ -152,41 +151,77 @@ class ConnectionManager:
                     self.active_connections.remove(connection)
 
     async def generate_telemetry(self):
-        """Generate mock telemetry data"""
+        """Generate real telemetry data from database"""
+        from .database import get_db
+        from .models import TestMetric, TestRun
+        from sqlalchemy import select
+        
         while True:
-            # Simulate telemetry updates
-            self.telemetry_data["rps"] = random.randint(1000, 5000)
-            self.telemetry_data["latency_p50"] = random.randint(10, 30)
-            self.telemetry_data["latency_p95"] = random.randint(30, 60)
-            self.telemetry_data["latency_p99"] = random.randint(60, 100)
-            self.telemetry_data["error_rate"] = round(random.uniform(0, 2), 2)
-            self.telemetry_data["active_connections"] = random.randint(50, 200)
-            self.telemetry_data["cpu_usage"] = random.randint(20, 80)
-            self.telemetry_data["memory_usage"] = random.randint(30, 70)
-            self.telemetry_data["network_throughput"] = f"{round(random.uniform(0.5, 5), 1)} Gbps"
-            self.telemetry_data["timestamp"] = datetime.now().isoformat()
-
-            # Add test results
-            self.telemetry_data["test_results"] = {
-                "total_tests": random.randint(100, 1000),
-                "passed": random.randint(90, 100),
-                "failed": random.randint(0, 10),
-                "in_progress": random.randint(1, 5),
-            }
-
-            # Add alert if error rate is high
-            if self.telemetry_data["error_rate"] > 1.5:
-                self.telemetry_data["alert"] = {
-                    "level": "warning",
-                    "message": f"High error rate detected: {self.telemetry_data['error_rate']}%",
+            try:
+                async with get_db() as db:
+                    recent_metrics = await db.execute(
+                        select(TestMetric).order_by(TestMetric.timestamp.desc()).limit(10)
+                    )
+                    metrics = recent_metrics.scalars().all()
+                    
+                    if metrics:
+                        latest = metrics[0]
+                        self.telemetry_data.update({
+                            "rps": latest.requests_per_second,
+                            "latency_p50": latest.latency_p50,
+                            "latency_p95": latest.latency_p95,
+                            "latency_p99": latest.latency_p99,
+                            "error_rate": latest.error_rate,
+                            "active_connections": latest.active_connections,
+                            "cpu_usage": latest.cpu_usage,
+                            "memory_usage": latest.memory_usage,
+                            "network_throughput": f"{latest.network_throughput:.1f} Gbps",
+                            "timestamp": latest.timestamp.isoformat()
+                        })
+                    else:
+                        self.telemetry_data.update({
+                            "rps": 0, "latency_p50": 0, "latency_p95": 0, "latency_p99": 0,
+                            "error_rate": 0.0, "active_connections": 0, "cpu_usage": 0,
+                            "memory_usage": 0, "network_throughput": "0.0 Gbps",
+                            "timestamp": datetime.now().isoformat()
+                        })
+                    
+                    # Get real test results
+                    active_runs = await db.execute(
+                        select(TestRun).where(TestRun.status.in_(['running', 'completed', 'failed']))
+                    )
+                    runs = active_runs.scalars().all()
+                    
+                    self.telemetry_data["test_results"] = {
+                        "total_tests": len(runs),
+                        "passed": len([r for r in runs if r.status == 'completed']),
+                        "failed": len([r for r in runs if r.status == 'failed']),
+                        "in_progress": len([r for r in runs if r.status == 'running']),
+                    }
+                    
+                    # Add alert if error rate is high (only if we have real data)
+                    if metrics and self.telemetry_data["error_rate"] > 1.5:
+                        self.telemetry_data["alert"] = {
+                            "level": "warning",
+                            "message": f"High error rate detected: {self.telemetry_data['error_rate']}%",
+                            "timestamp": datetime.now().isoformat(),
+                        }
+                    else:
+                        self.telemetry_data.pop("alert", None)
+                    
+            except Exception as e:
+                logger.error(f"Error generating telemetry: {e}")
+                self.telemetry_data.update({
+                    "rps": 0, "latency_p50": 0, "latency_p95": 0, "latency_p99": 0,
+                    "error_rate": 0.0, "active_connections": 0, "cpu_usage": 0,
+                    "memory_usage": 0, "network_throughput": "0.0 Gbps",
                     "timestamp": datetime.now().isoformat(),
-                }
-            else:
-                self.telemetry_data.pop("alert", None)
-
+                    "test_results": {"total_tests": 0, "passed": 0, "failed": 0, "in_progress": 0}
+                })
+            
             # Broadcast to all connected clients
             await self.broadcast(json.dumps(self.telemetry_data))
-
+            
             # Wait before next update
             await asyncio.sleep(2)
 
