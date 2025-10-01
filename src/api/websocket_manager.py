@@ -8,6 +8,9 @@ import logging
 from datetime import datetime
 import uuid
 import threading
+from .database import get_db_context
+from .models import TestMetric, TestRun
+from sqlalchemy import select
 
 logger = logging.getLogger(__name__)
 
@@ -152,13 +155,10 @@ class ConnectionManager:
 
     async def generate_telemetry(self):
         """Generate real telemetry data from database"""
-        from .database import get_db
-        from .models import TestMetric, TestRun
-        from sqlalchemy import select
         
         while True:
             try:
-                async with get_db() as db:
+                async with get_db_context() as db:
                     recent_metrics = await db.execute(
                         select(TestMetric).order_by(TestMetric.timestamp.desc()).limit(10)
                     )
