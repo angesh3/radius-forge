@@ -18,12 +18,15 @@ RUN npm run build
 # Stage 2: Python Runtime
 FROM python:3.9-slim
 
-# Install system dependencies
+# Install system dependencies including build tools for psutil
 RUN apt-get update && apt-get install -y \
     curl \
     netcat-traditional \
     nginx \
     supervisor \
+    build-essential \
+    python3-dev \
+    gcc \
     && rm -rf /var/lib/apt/lists/*
 
 # Set working directory
