@@ -366,7 +366,7 @@ class SyslogGenerator:
 
         # Select threat type
         if threat_type is None:
-            threat_type = random.choice(list(ThreatType))
+            threat_type = ThreatType.FAILED_AUTH  # Default to most common threat type
 
         template = self.threat_templates.get(threat_type, {})
 
@@ -383,7 +383,7 @@ class SyslogGenerator:
 
         # Select message template and format
         message_templates = template.get("message_templates", ["Generic security event"])
-        message_template = random.choice(message_templates)
+        message_template = message_templates[0]  # Use first template consistently
 
         # Format message with variables
         message = message_template.format(
@@ -417,7 +417,7 @@ class SyslogGenerator:
             dest_ip=dest_ip,
             source_port=source_port,
             dest_port=dest_port,
-            protocol=random.choice(["TCP", "UDP", "ICMP"]),
+            protocol="TCP",  # Standard protocol
             user=user,
             session_id=f"sess_{int(now.timestamp())}",
             threat_type=threat_type,
@@ -527,7 +527,7 @@ class SyslogGenerator:
                             break
 
                         # Select threat type based on distribution
-                        threat_type = random.choice(threat_list) if threat_list else None
+                        threat_type = threat_list[0] if threat_list else None  # Use first threat type consistently
 
                         # Generate and send event
                         event = self.generate_event(threat_type)
