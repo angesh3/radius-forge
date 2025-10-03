@@ -1,6 +1,7 @@
 # RadiusForge Multi-Stage Docker Build
-# Version: 1.4.0
+# Version: 1.4.1
 # Supports all RadiusForge services in a single container
+# Multi-Architecture Support: linux/amd64, linux/arm64
 
 # Stage 1: Build UI
 FROM node:18-alpine AS ui-builder
