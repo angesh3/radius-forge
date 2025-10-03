@@ -22,9 +22,13 @@ class Base(DeclarativeBase):
     pass
 
 
-# Create async engine
+# Create async engine with explicit asyncpg driver
+database_url = settings.DATABASE_URL
+if not database_url.startswith("postgresql+asyncpg://"):
+    database_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
+
 engine = create_async_engine(
-    settings.DATABASE_URL,
+    database_url,
     echo=settings.DATABASE_ECHO,
     poolclass=NullPool,  # Use NullPool for async
     pool_pre_ping=True,
